@@ -251,6 +251,11 @@ export const DestinationEditModal: React.FC<DestinationEditModalProps> = ({
     }
     setSaving(true);
     try {
+      try {
+        const customKey = `custom_photos_${formData.id}`;
+        localStorage.setItem(customKey, JSON.stringify(formData.gallery || []));
+      } catch (e) {}
+
       await onSave(formData);
       onClose();
     } catch (err: any) {

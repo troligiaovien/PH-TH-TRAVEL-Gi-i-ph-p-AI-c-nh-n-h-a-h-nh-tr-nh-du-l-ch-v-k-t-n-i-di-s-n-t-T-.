@@ -479,6 +479,53 @@ export const DESTINATIONS_DATA: Destination[] = [
       'Nên chuẩn bị áo ấm hoặc áo khoác nhẹ vì thời tiết đêm và sáng sớm vùng núi se lạnh.',
       'Dịp cuối tuần lượng khách đông, nên chủ động đặt phòng khách sạn/homestay từ trước.'
     ],
+    gallery: [
+      {
+        id: 'td-nha-tho-da',
+        title: 'Nhà Thờ Đá Cổ Tam Đảo',
+        subtitle: 'Kiệt tác kiến trúc Gothic từ năm 1937',
+        description: 'Ngôi thánh đường bằng đá sừng sững giữa lưng chừng mây núi Tam Đảo, với vòm cửa uốn cong cổ kính nhìn ra toàn cảnh thị trấn mờ sương.',
+        tag: 'Kiến trúc cổ',
+        tagColor: 'bg-slate-100 text-slate-900 border-slate-300',
+        location: 'Trung tâm thị trấn Tam Đảo',
+        photographerOrSource: 'Tư liệu Du lịch Tam Đảo',
+        url: '/images/tam-dao/cover.jpg',
+        colorGradient: 'from-slate-900 via-sky-950 to-stone-900',
+        symbol: '🏰',
+        architecturalStyle: 'Kiến trúc Gothic đá phiến Pháp cổ',
+        bestViewTime: 'Hoàng hôn buông và sương mây lãng đãng'
+      },
+      {
+        id: 'td-cau-may',
+        title: 'Cầu Mây & Biển Mây Bồng Bềnh',
+        subtitle: 'Thiên đường săn mây miền Bắc',
+        description: 'Điểm check-in nổi tiếng giữa đại ngàn Tam Đảo, nơi du khách như bước đi trên những tầng mây trắng bồng bềnh cuộn trôi.',
+        tag: 'Săn mây',
+        tagColor: 'bg-sky-100 text-sky-900 border-sky-300',
+        location: 'Tổ dân phố 2, thị trấn Tam Đảo',
+        photographerOrSource: 'Nhiếp ảnh phong cảnh',
+        url: '/images/tam-dao/cover.jpg',
+        colorGradient: 'from-sky-950 via-indigo-950 to-stone-900',
+        symbol: '☁️',
+        architecturalStyle: 'Cầu gỗ ngắm cảnh thiên nhiên',
+        bestViewTime: 'Sáng sớm 6:00 - 7:30'
+      },
+      {
+        id: 'td-thac-bac',
+        title: 'Thác Bạc Giữa Rừng Nguyên Sinh',
+        subtitle: 'Dòng thác ngọc mát lạnh',
+        description: 'Dòng thác bạc đổ từ đỉnh núi cao hàng trăm mét luồn qua những vách đá rêu phong, hơi nước phả ra mát lạnh sảng khoái.',
+        tag: 'Thác nước',
+        tagColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+        location: 'Thung lũng sâu thị trấn Tam Đảo',
+        photographerOrSource: 'Vườn Quốc gia Tam Đảo',
+        url: '/images/tam-dao/cover.jpg',
+        colorGradient: 'from-emerald-950 via-teal-950 to-stone-900',
+        symbol: '🌊',
+        architecturalStyle: 'Thác nước tự nhiên hùng vĩ',
+        bestViewTime: 'Mùa hè và thu nắng trong'
+      }
+    ],
     imagePlaceholder: {
       title: 'Thị Trấn Tam Đảo Mờ Sương',
       caption: 'Ảnh tư liệu thung lũng nhà thờ đá cổ và biển mây bồng bềnh',
@@ -561,6 +608,53 @@ export const DESTINATIONS_DATA: Destination[] = [
       'Đường lên một số đồi cao có dốc đất sỏi, nên dùng xe số hoặc xe gầm cao và chú ý an toàn.',
       'Tôn trọng bà con làm nông, không dẫm đạp làm gãy búp chè khi chụp ảnh.'
     ],
+    gallery: [
+      {
+        id: 'lc-bat-up',
+        title: 'Đồi Chè Bát Úp Long Cốc',
+        subtitle: 'Vịnh Hạ Long vùng trung du Đất Tổ',
+        description: 'Hàng trăm quả đồi chè tròn vo hình bát úp nhấp nhô trải dài tít tắp, tạo nên kỳ quan sinh thái nông nghiệp độc nhất vô nhị.',
+        tag: 'Đồi chè bát úp',
+        tagColor: 'bg-emerald-100 text-emerald-950 border-emerald-300',
+        location: 'Xã Long Cốc, huyện Tân Sơn',
+        photographerOrSource: 'Tư liệu Du lịch Tân Sơn',
+        url: '/images/long-coc/cover.jpg',
+        colorGradient: 'from-emerald-900 via-teal-950 to-stone-900',
+        symbol: '🍃',
+        architecturalStyle: 'Cảnh quan nông nghiệp sinh thái đồi bát úp',
+        bestViewTime: 'Bình minh sáng sớm 5:30 - 7:00'
+      },
+      {
+        id: 'lc-san-may',
+        title: 'Bình Minh Săn Mây Long Cốc',
+        subtitle: 'Khoảnh khắc sương sớm bảng lảng',
+        description: 'Màn sương mây trắng muốt bồng bềnh lượn quanh những đỉnh đồi chè đón ánh bình minh đầu tiên, cảnh tượng ngoạn mục mê hoặc các nhiếp ảnh gia.',
+        tag: 'Săn mây',
+        tagColor: 'bg-teal-100 text-teal-950 border-teal-300',
+        location: 'Đồi Chè Đội 3 & Đội 5',
+        photographerOrSource: 'Hội Nhiếp ảnh Việt Nam',
+        url: '/images/long-coc/cover.jpg',
+        colorGradient: 'from-teal-950 via-emerald-950 to-stone-900',
+        symbol: '🌄',
+        architecturalStyle: 'Biển mây thung lũng tự nhiên',
+        bestViewTime: 'Tháng 3 đến tháng 12 lúc rạng đông'
+      },
+      {
+        id: 'lc-mong-ngua',
+        title: 'Đồi Chè Móng Ngựa & Hương Trà Bản Mường',
+        subtitle: 'Luống chè uốn lượn mềm mại',
+        description: 'Các luống chè non uốn lượn mềm mại theo đường đồng mức tự nhiên, nơi bà con Mường hái những búp chè Shan tuyết thượng hạng.',
+        tag: 'Trà Shan Tuyết',
+        tagColor: 'bg-amber-100 text-amber-950 border-amber-300',
+        location: 'Đồi Chè Móng Ngựa',
+        photographerOrSource: 'HTX Chè Long Cốc',
+        url: '/images/long-coc/cover.jpg',
+        colorGradient: 'from-amber-950 via-emerald-950 to-stone-900',
+        symbol: '🍵',
+        architecturalStyle: 'Hoa văn luống chè tự nhiên',
+        bestViewTime: 'Nắng sớm chan hòa rực rỡ'
+      }
+    ],
     imagePlaceholder: {
       title: 'Đồi chè Bát Úp Long Cốc',
       caption: 'Ảnh tư liệu phong cảnh ruộng chè bát úp lúc bình minh rạng rỡ',
@@ -642,6 +736,53 @@ export const DESTINATIONS_DATA: Destination[] = [
       'Luôn mặc áo phao bảo hộ khi tham gia các hoạt động thể thao mặt nước như chèo kayak, cano.',
       'Nếu đi dã ngoại cắm trại trong ngày, chuẩn bị lều bạt nhỏ và giữ gìn cảnh quan rừng thông.',
       'Tuyến đường từ Hà Nội theo đường cao tốc Thăng Long - Nội Bài rẽ QL2 rất thuận tiện, chỉ mất khoảng 50 phút đi xe.'
+    ],
+    gallery: [
+      {
+        id: 'dl-mat-ho-xanh',
+        title: 'Mặt Nước Rừng Thông Hồ Đại Lải',
+        subtitle: 'Không gian sinh thái khoáng đạt 525 ha',
+        description: 'Mặt hồ phẳng lặng như gương soi bóng rặng thông xanh ngút ngàn và dãy Tam Đảo xa xa, điểm cắm trại và dã ngoại lý tưởng cho các gia đình.',
+        tag: 'Cảnh quan hồ',
+        tagColor: 'bg-blue-100 text-blue-950 border-blue-300',
+        location: 'Phường Xuân Hòa, Phúc Yên',
+        photographerOrSource: 'BQL Hồ Đại Lải',
+        url: '/images/dai-lai/cover.jpg',
+        colorGradient: 'from-blue-950 via-teal-950 to-stone-900',
+        symbol: '⛵',
+        architecturalStyle: 'Cảnh quan hồ nước tự nhiên sinh thái',
+        bestViewTime: 'Chiều hoàng hôn buông nắng vàng'
+      },
+      {
+        id: 'dl-dao-ngoc',
+        title: 'Đảo Ngọc Xanh Giữa Lòng Hồ',
+        subtitle: 'Viên ngọc bích giữa lòng Đại Lải',
+        description: 'Hòn đảo nhỏ rợp bóng cây cổ thụ giữa mặt hồ bao la, nơi du khách cập thuyền tham quan, hít thở bầu không khí trong lành nguyên sơ.',
+        tag: 'Đảo sinh thái',
+        tagColor: 'bg-emerald-100 text-emerald-950 border-emerald-300',
+        location: 'Khu vực trung tâm hồ Đại Lải',
+        photographerOrSource: 'Tư liệu Du lịch Sinh thái',
+        url: '/images/dai-lai/cover.jpg',
+        colorGradient: 'from-emerald-950 via-teal-950 to-stone-900',
+        symbol: '🏝️',
+        architecturalStyle: 'Đảo sinh thái nguyên sinh',
+        bestViewTime: 'Sáng mai thanh bình'
+      },
+      {
+        id: 'dl-flamingo-resort',
+        title: 'Flamingo Đại Lải & Nghệ Thuật Trong Rừng',
+        subtitle: 'Khu nghỉ dưỡng sinh thái quốc tế',
+        description: 'Quần thể biệt thự nghỉ dưỡng sang trọng kết hợp bảo tàng nghệ thuật đương đại ngoài trời Art In The Forest độc đáo giữa rừng thông.',
+        tag: 'Nghỉ dưỡng',
+        tagColor: 'bg-amber-100 text-amber-950 border-amber-300',
+        location: 'Flamingo Đại Lải Resort',
+        photographerOrSource: 'Flamingo Heritage',
+        url: '/images/dai-lai/cover.jpg',
+        colorGradient: 'from-amber-950 via-stone-900 to-emerald-950',
+        symbol: '🌲',
+        architecturalStyle: 'Kiến trúc xanh đương đại kết hợp điêu khắc rừng',
+        bestViewTime: 'Quanh năm 4 mùa rực rỡ'
+      }
     ],
     imagePlaceholder: {
       title: 'Mặt Nước Rừng Thông Hồ Đại Lải',

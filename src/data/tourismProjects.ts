@@ -43,7 +43,7 @@ export const TOURISM_PROJECTS_DATA: TourismProjectProfile[] = [
     technicalStack: [
       'Frontend: React 19 + TypeScript + Tailwind CSS hiện đại',
       'Bản đồ số: Leaflet Engine + OpenStreetMap + Esri World Imagery (không lệ thuộc billing ngoại tệ)',
-      'Hạ tầng dữ liệu: Google Cloud Firestore đồng bộ thời gian thực + Firebase Authentication',
+      'Hạ tầng dữ liệu: Cơ sở dữ liệu đám mây thời gian thực & Xác thực người dùng Google bảo mật',
       'Trí tuệ nhân tạo: @google/genai TypeScript SDK với cơ chế RAG (Retrieval-Augmented Generation) dựa trên tri thức thực địa'
     ],
     verifiedOutcomes: [

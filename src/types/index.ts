@@ -74,6 +74,8 @@ export interface Destination {
   source: string;
   lastVerified: string;
   distanceFromVietTriKm: number;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export interface CulturalArticle {

@@ -1218,7 +1218,7 @@ export const MAGAZINE_ARTICLES_DATA: MagazineArticle[] = [
           'Hệ thống được thiết kế theo kiến trúc Micro-Frontend hiện đại với 4 phân hệ chính:',
           '1. Phân hệ Bản đồ Tương tác Đa lớp: Xây dựng trên nền tảng Leaflet Engine, hỗ trợ chuyển đổi linh hoạt giữa bản đồ đường phố OpenStreetMap, ảnh vệ tinh Esri World Imagery và bản đồ địa hình OpenTopoMap, hiển thị trạm dừng và đường vẽ lộ trình polyline thông minh.',
           '2. Phân hệ Lập Kế hoạch AI: Ứng dụng @google/genai SDK kết hợp kỹ thuật prompt engineering với ràng buộc dữ liệu nghiêm ngặt để triệt tiêu hiện tượng ảo giác thông tin.',
-          '3. Phân hệ Đồng bộ Đám mây: Tích hợp Google Cloud Firestore và Firebase Auth lưu trữ an toàn ghi chú, danh sách yêu thích và kế hoạch chuyến đi của người dùng.',
+          '3. Phân hệ Đồng bộ Đám mây: Lưu trữ an toàn ghi chú, danh sách yêu thích và kế hoạch chuyến đi của người dùng qua tài khoản Google.',
           '4. Phân hệ Cẩm nang & Tri thức Di sản: Tạp chí du lịch số chuẩn SEO, cung cấp nội dung có kiểm chứng khoa học.'
         ]
       },

@@ -111,6 +111,10 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
                         alt={dest.name}
                         referrerPolicy="no-referrer"
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/images/den-hung/cover.jpg';
+                        }}
                       />
                     ) : (
                       <div

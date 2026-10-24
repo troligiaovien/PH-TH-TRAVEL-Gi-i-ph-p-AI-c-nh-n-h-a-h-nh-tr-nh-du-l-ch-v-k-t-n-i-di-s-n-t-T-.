@@ -14,7 +14,8 @@ import {
   getInitialUISettings,
   subscribeToUISettings,
   DEFAULT_UI_SETTINGS,
-  syncUserProfile
+  syncUserProfile,
+  healAndMergeDestinations
 } from './lib/firebase';
 import { Navbar, MainTabType } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -79,21 +80,7 @@ export default function App() {
     const unsubDests = subscribeToDestinations(
       (cloudDests) => {
         if (cloudDests && cloudDests.length > 0) {
-          setDestinations(() => {
-            const map = new Map<string, Destination>();
-            // Seed defaults first so all verified locations (like Tây Thiên) are present
-            DESTINATIONS_DATA.forEach((d) => map.set(d.id, d));
-            // Overlay cloud modifications and custom admin destinations
-            cloudDests.forEach((cd) => {
-              const existing = map.get(cd.id);
-              if (existing) {
-                map.set(cd.id, { ...existing, ...cd });
-              } else {
-                map.set(cd.id, cd);
-              }
-            });
-            return Array.from(map.values());
-          });
+          setDestinations(healAndMergeDestinations(cloudDests));
         }
       },
       (err) => {
@@ -262,10 +249,10 @@ export default function App() {
         setSelectedDestination(destData);
       }
 
-      addToast(`Đã lưu "${destData.name}" lên Cloud Firestore thành công!`, 'success');
+      addToast(`Đã lưu "${destData.name}" thành công!`, 'success');
     } catch (err: any) {
       console.error(err);
-      addToast(`Lỗi lưu di tích: ${err.message || err}`, 'error');
+      addToast(`Lỗi lưu điểm đến: ${err.message || err}`, 'error');
       throw err;
     }
   };

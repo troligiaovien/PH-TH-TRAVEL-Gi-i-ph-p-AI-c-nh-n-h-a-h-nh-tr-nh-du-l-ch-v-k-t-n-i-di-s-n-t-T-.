@@ -412,6 +412,10 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
                               alt={photo.title}
                               referrerPolicy="no-referrer"
                               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/images/den-hung/cover.jpg';
+                              }}
                             />
                           ) : (
                             <>
@@ -788,6 +792,10 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
                               alt={photo.title}
                               referrerPolicy="no-referrer"
                               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/images/den-hung/cover.jpg';
+                              }}
                             />
                           ) : (
                             <>
@@ -1078,6 +1086,10 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
                   alt={currentLightboxImage.title}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/images/den-hung/cover.jpg';
+                  }}
                 />
               ) : (
                 <div

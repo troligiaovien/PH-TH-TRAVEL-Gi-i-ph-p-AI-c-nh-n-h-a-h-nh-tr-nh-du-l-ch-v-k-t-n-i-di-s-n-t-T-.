@@ -186,6 +186,19 @@ export const BatchPhotoUploadModal: React.FC<BatchPhotoUploadModalProps> = ({
       // Save to Firebase Firestore Cloud
       await saveDestinationToCloud(updatedDestination, adminEmail, replaceExisting);
 
+      // Also persist to custom_photos in localStorage so they never get lost even if Cloud quota resets
+      try {
+        const customKey = `custom_photos_${currentDestination.id}`;
+        const existingCustomStr = localStorage.getItem(customKey);
+        const existingCustom = existingCustomStr ? JSON.parse(existingCustomStr) : [];
+        const combinedCustom = replaceExisting
+          ? newGalleryItems
+          : [...newGalleryItems, ...existingCustom];
+        localStorage.setItem(customKey, JSON.stringify(combinedCustom));
+      } catch (e) {
+        console.warn('Could not cache custom photos to local storage:', e);
+      }
+
       onSuccess(updatedDestination, images.length);
       onShowToast(
         `Đã tải lên và lưu ${images.length} ảnh hàng loạt cho "${currentDestination.name}" thành công!`,

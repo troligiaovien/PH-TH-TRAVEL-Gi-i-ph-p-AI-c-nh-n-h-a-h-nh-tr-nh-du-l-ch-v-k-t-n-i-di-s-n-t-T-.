@@ -367,9 +367,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     try {
       const users = await fetchRegisteredUsers();
       setRegisteredUsers(users);
-      onShowToast(`Đã tải dữ liệu chính xác từ Firebase: ${users.length} tài khoản.`, 'success');
+      onShowToast(`Đã tải dữ liệu chính xác: ${users.length} tài khoản người dùng.`, 'success');
     } catch (err: any) {
-      onShowToast(`Lỗi lấy tài khoản từ Firebase: ${err.message || err}`, 'error');
+      onShowToast(`Lỗi lấy dữ liệu tài khoản: ${err.message || err}`, 'error');
     } finally {
       setLoadingUsers(false);
     }
@@ -531,7 +531,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     setSeeding(true);
     try {
       await seedInitialDestinationsToCloud(DESTINATIONS_DATA, currentUser?.email || 'admin');
-      onShowToast('Đã đồng bộ 5 điểm di tích lên Firebase Firestore thành công!', 'success');
+      onShowToast('Đã đồng bộ 5 điểm di tích lên hệ thống dữ liệu thành công!', 'success');
       onRefreshData();
     } catch (err: any) {
       console.error(err);
@@ -949,11 +949,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         Quản Lý Các Tài Khoản Đã Đăng Ký Hệ Thống
                       </h4>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-800 text-amber-300 border border-emerald-700 font-bold">
-                        Firebase Live Sync
+                        Đồng bộ Dữ liệu Trực tuyến
                       </span>
                     </div>
                     <p className="text-xs text-stone-300">
-                      Toàn bộ thông tin tài khoản được truy xuất và đồng bộ trực tiếp từ cơ sở dữ liệu <strong>Cloud Firestore</strong> chính xác theo thời gian thực.
+                      Toàn bộ thông tin tài khoản được truy xuất và đồng bộ trực tiếp từ cơ sở dữ liệu đám mây chính xác theo thời gian thực.
                     </p>
                   </div>
 
@@ -964,7 +964,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 text-stone-950 ${loadingUsers ? 'animate-spin' : ''}`} />
-                    <span>{loadingUsers ? 'Đang nạp từ Firebase...' : 'Làm mới từ Firebase'}</span>
+                    <span>{loadingUsers ? 'Đang nạp dữ liệu...' : 'Làm mới danh sách'}</span>
                   </button>
                 </div>
 
@@ -1037,7 +1037,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     type="text"
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
-                    placeholder="Tìm theo tên hiển thị, địa chỉ email, hoặc mã Firebase UID..."
+                    placeholder="Tìm theo tên hiển thị, địa chỉ email, hoặc mã định danh UID..."
                     className="w-full text-xs pl-9 pr-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-700"
                   />
                   {userSearch && (
@@ -1080,7 +1080,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   <div className="p-12 text-center bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
                     <RefreshCw className="w-7 h-7 text-emerald-800 animate-spin mx-auto" />
                     <p className="text-xs text-stone-600 font-medium">
-                      Đang kết nối Cloud Firestore và tải danh sách tài khoản đã đăng ký...
+                      Đang kết nối hệ thống đám mây và tải danh sách tài khoản đã đăng ký...
                     </p>
                   </div>
                 ) : registeredUsers.filter((u) => {
@@ -1102,7 +1102,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       Không tìm thấy tài khoản nào khớp với bộ lọc
                     </p>
                     <p className="text-[11px] text-stone-500">
-                      Thử thay đổi từ khóa tìm kiếm hoặc bấm nút "Làm mới từ Firebase".
+                      Thử thay đổi từ khóa tìm kiếm hoặc bấm nút "Làm mới danh sách".
                     </p>
                   </div>
                 ) : (
@@ -1220,7 +1220,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                       ? 'bg-emerald-900 text-white'
                                       : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
                                   }`}
-                                  title="Sao chép mã định danh Firebase UID"
+                                  title="Sao chép mã định danh UID"
                                 >
                                   <Key className="w-3 h-3 text-stone-500" />
                                   <span>{copiedUid === u.uid ? 'Đã chép UID!' : 'Copy UID'}</span>
@@ -1232,7 +1232,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             <div className="mt-3 pt-3 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-12 gap-2 text-[11px] text-stone-500 bg-stone-50/60 p-2.5 rounded-xl">
                               {/* UID */}
                               <div className="sm:col-span-5 flex items-center gap-1.5 font-mono truncate">
-                                <span className="text-stone-400 font-bold">Firebase UID:</span>
+                                <span className="text-stone-400 font-bold">Mã UID:</span>
                                 <span className="text-stone-800 bg-white px-1.5 py-0.5 rounded border border-stone-200 truncate select-all">
                                   {u.uid}
                                 </span>

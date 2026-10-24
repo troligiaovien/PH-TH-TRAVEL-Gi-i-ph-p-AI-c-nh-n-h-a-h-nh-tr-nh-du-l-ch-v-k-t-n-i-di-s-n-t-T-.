@@ -151,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Google Auth / Firebase Profile Button */}
+          {/* Google Auth / Cloud Profile Button */}
           <button
             onClick={onOpenAuth}
             className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
@@ -161,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'bg-emerald-50/70 border-emerald-300 text-stone-800 hover:bg-emerald-100/60'
                 : 'bg-white border-stone-300 hover:border-emerald-600 text-stone-700 hover:bg-stone-50 shadow-2xs'
             }`}
-            title={currentUser ? `Đang đăng nhập: ${currentUser.email}${isAdmin ? ' (Admin Tối Cao)' : ' (Đồng bộ Firebase)'}` : 'Đăng nhập Google để đồng bộ dữ liệu Firebase'}
+            title={currentUser ? `Đang đăng nhập: ${currentUser.email}${isAdmin ? ' (Quản trị viên)' : ' (Đồng bộ đám mây)'}` : 'Đăng nhập Google để lưu điểm đến và lịch trình'}
           >
             {currentUser ? (
               <>
@@ -288,7 +288,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <span className="flex items-center gap-2">
                   <Cloud className="w-4 h-4 text-emerald-700" />
-                  {currentUser ? `Tài khoản: ${currentUser.displayName || currentUser.email}` : 'Đăng nhập Google (Firebase)'}
+                  {currentUser ? `Tài khoản: ${currentUser.displayName || currentUser.email}` : 'Đăng nhập Google'}
                 </span>
                 {currentUser ? (
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">

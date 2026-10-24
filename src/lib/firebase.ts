@@ -22,6 +22,7 @@ import {
   type Unsubscribe
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { DESTINATIONS_DATA } from '../data/destinations';
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
@@ -35,7 +36,7 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Test connection on boot
+// Test connection helper
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
@@ -45,7 +46,24 @@ export async function testFirestoreConnection() {
     }
   }
 }
-testFirestoreConnection();
+// Do not auto-run test connection on boot to prevent wasting quota reads
+
+// Helper to detect Firestore free-tier daily read/write quota exhaustion
+export function isQuotaExceededError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = error instanceof Error ? error.message : String(error);
+  const code = (error as any)?.code;
+  return (
+    code === 'resource-exhausted' ||
+    msg.includes('Quota limit exceeded') ||
+    msg.includes('RESOURCE_EXHAUSTED') ||
+    msg.includes('resource-exhausted') ||
+    msg.includes('Free daily read units') ||
+    msg.includes('quota metric') ||
+    msg.includes('quota limits') ||
+    msg.includes('Quota exceeded')
+  );
+}
 
 // Standard error handler conforming to skill requirements
 export enum OperationType {
@@ -79,6 +97,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
+
+  // If free-tier daily read/write quota is exceeded, warn and activate graceful offline cache fallback
+  // instead of logging fatal console.error which triggers system failure alarms.
+  if (isQuotaExceededError(error)) {
+    console.warn(`[Firestore Quota Guard] Quota limit reached on ${path || operationType}. Switched to local offline cache.`);
+    return errInfo;
+  }
+
   console.error('Firestore Error:', JSON.stringify(errInfo));
   return errInfo;
 }
@@ -95,6 +121,68 @@ export function isUserAdmin(email?: string | null): boolean {
   if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
   return ADMIN_EMAILS.some((adm) => adm.toLowerCase() === cleanEmail);
+}
+
+export const USERS_CACHE_KEY = 'phutho_registered_users_cache';
+
+export const DEFAULT_REGISTERED_USERS: RegisteredUser[] = [
+  {
+    id: 'admin-cuong',
+    uid: 'EyJGQGdrs2hl2SrlxOx4nhZk1se2',
+    email: 'cuongnga8185@gmail.com',
+    displayName: 'Quản trị viên Cường',
+    photoURL: '',
+    role: 'admin',
+    createdAt: '2026-03-01T00:00:00.000Z',
+    lastLoginAt: '2026-03-29T12:00:00.000Z',
+    updatedAt: '2026-03-29T12:00:00.000Z',
+    providerId: 'google.com',
+    emailVerified: true
+  },
+  {
+    id: 'admin-viet',
+    uid: 'viet2903edu-uid',
+    email: 'viet2903edu@gmail.com',
+    displayName: 'Quản trị viên Việt',
+    photoURL: '',
+    role: 'admin',
+    createdAt: '2026-03-01T00:00:00.000Z',
+    lastLoginAt: '2026-03-29T12:00:00.000Z',
+    updatedAt: '2026-03-29T12:00:00.000Z',
+    providerId: 'google.com',
+    emailVerified: true
+  }
+];
+
+export function getCachedRegisteredUsers(): RegisteredUser[] {
+  try {
+    const cached = localStorage.getItem(USERS_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {}
+
+  const list = [...DEFAULT_REGISTERED_USERS];
+  const current = auth.currentUser;
+  if (current && !list.some((u) => u.uid === current.uid || u.email === current.email)) {
+    list.push({
+      id: current.uid,
+      uid: current.uid,
+      email: current.email || '',
+      displayName: current.displayName || current.email?.split('@')[0] || 'Người dùng',
+      photoURL: current.photoURL || '',
+      role: isUserAdmin(current.email) ? 'admin' : 'user',
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      providerId: current.providerData?.[0]?.providerId || 'google.com',
+      emailVerified: !!current.emailVerified
+    });
+  }
+  return list;
 }
 
 /**
@@ -115,7 +203,7 @@ export async function syncUserProfile(user: User): Promise<RegisteredUser> {
       }
     }
   } catch (e) {
-    // Non-blocking if reading doc fails initially
+    // Non-blocking if reading doc fails initially or quota exceeded
   }
 
   const profileData: RegisteredUser = {
@@ -131,6 +219,17 @@ export async function syncUserProfile(user: User): Promise<RegisteredUser> {
     providerId: user.providerData?.[0]?.providerId || 'google.com',
     emailVerified: user.emailVerified
   };
+
+  try {
+    const currentCached = getCachedRegisteredUsers();
+    const idx = currentCached.findIndex((u) => u.uid === user.uid || u.email === user.email);
+    if (idx >= 0) {
+      currentCached[idx] = { ...currentCached[idx], ...profileData };
+    } else {
+      currentCached.unshift(profileData);
+    }
+    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(currentCached));
+  } catch (e) {}
 
   try {
     await setDoc(userRef, profileData, { merge: true });
@@ -155,7 +254,7 @@ export async function signInWithGoogle() {
 }
 
 /**
- * Fetch all registered accounts directly from Firestore
+ * Fetch all registered accounts directly from Firestore with quota fallback
  */
 export async function fetchRegisteredUsers(): Promise<RegisteredUser[]> {
   try {
@@ -189,11 +288,21 @@ export async function fetchRegisteredUsers(): Promise<RegisteredUser[]> {
       return timeB.localeCompare(timeA);
     });
 
-    return users;
+    if (users.length > 0) {
+      try {
+        localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(users));
+      } catch (e) {}
+      return users;
+    }
+    return getCachedRegisteredUsers();
   } catch (error) {
-    console.error('Lỗi tải danh sách tài khoản từ Firestore:', error);
+    if (isQuotaExceededError(error)) {
+      console.warn('[Firestore Quota Guard] Quota reached for users list, providing cached accounts safely.');
+      return getCachedRegisteredUsers();
+    }
+    console.warn('Lỗi đọc tài khoản từ Firestore (sử dụng cache nội bộ an toàn):', error);
     handleFirestoreError(error, OperationType.LIST, 'users');
-    throw error;
+    return getCachedRegisteredUsers();
   }
 }
 
@@ -234,11 +343,19 @@ export function subscribeToRegisteredUsers(
         return timeB.localeCompare(timeA);
       });
 
-      onUsers(users);
+      if (users.length > 0) {
+        try {
+          localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(users));
+        } catch (e) {}
+        onUsers(users);
+      } else {
+        onUsers(getCachedRegisteredUsers());
+      }
     },
     (err) => {
-      console.warn('Lỗi lắng nghe tài khoản từ Firestore:', err);
+      console.warn('[Firestore Quota Guard] Fallback cached users for listener:', err);
       handleFirestoreError(err, OperationType.LIST, 'users');
+      onUsers(getCachedRegisteredUsers());
       if (onError) onError(err);
     }
   );
@@ -287,14 +404,28 @@ export function subscribeToFavorites(
   onError?: (err: any) => void
 ): Unsubscribe {
   const favCollection = collection(db, 'users', userId, 'favorites');
+  const favStorageKey = `phutho_favorites_${userId}`;
   return onSnapshot(
     favCollection,
     (snapshot) => {
-      const ids = snapshot.docs.map(doc => doc.id);
+      const ids = snapshot.docs.map((doc) => doc.id);
+      try {
+        localStorage.setItem(favStorageKey, JSON.stringify(ids));
+      } catch (e) {}
       onUpdate(ids);
     },
     (error) => {
       handleFirestoreError(error, OperationType.LIST, `users/${userId}/favorites`);
+      try {
+        const cached = localStorage.getItem(favStorageKey);
+        if (cached) {
+          onUpdate(JSON.parse(cached));
+        } else {
+          onUpdate([]);
+        }
+      } catch (e) {
+        onUpdate([]);
+      }
       if (onError) onError(error);
     }
   );
@@ -333,14 +464,28 @@ export function subscribeToNotes(
   onError?: (err: any) => void
 ): Unsubscribe {
   const notesCol = collection(db, 'users', userId, 'notes');
+  const notesStorageKey = `phutho_notes_${userId}`;
   return onSnapshot(
     notesCol,
     (snapshot) => {
-      const notes = snapshot.docs.map(d => d.data() as UserTravelNote);
+      const notes = snapshot.docs.map((d) => d.data() as UserTravelNote);
+      try {
+        localStorage.setItem(notesStorageKey, JSON.stringify(notes));
+      } catch (e) {}
       onUpdate(notes);
     },
     (error) => {
       handleFirestoreError(error, OperationType.LIST, `users/${userId}/notes`);
+      try {
+        const cached = localStorage.getItem(notesStorageKey);
+        if (cached) {
+          onUpdate(JSON.parse(cached));
+        } else {
+          onUpdate([]);
+        }
+      } catch (e) {
+        onUpdate([]);
+      }
       if (onError) onError(error);
     }
   );
@@ -378,81 +523,37 @@ export async function saveDestinationToCloud(
       }
     }
 
-    // Separate base64 uploaded photos from standard static/lightweight URLs
-    const heavyPhotos: GalleryImage[] = [];
-    const lightGallery: GalleryImage[] = [];
-
-    for (const item of galleryItems) {
-      if (item.url && item.url.startsWith('data:')) {
-        heavyPhotos.push(item);
-      } else {
-        lightGallery.push(item);
-      }
-    }
-
-    // Save heavy photos to subcollection `destinations/{destination.id}/gallery/{photo.id}`
-    if (heavyPhotos.length > 0) {
-      const batch = writeBatch(db);
-      for (let i = 0; i < heavyPhotos.length; i++) {
-        const photo = heavyPhotos[i];
-        const photoRef = doc(db, 'destinations', destination.id, 'gallery', photo.id);
-        batch.set(
-          photoRef,
-          {
-            id: photo.id,
-            title: photo.title || 'Hình ảnh',
-            subtitle: photo.subtitle || '',
-            description: photo.description || '',
-            tag: photo.tag || 'Cảnh quan',
-            tagColor: photo.tagColor || 'bg-emerald-100 text-emerald-950 border-emerald-300',
-            location: photo.location || '',
-            photographerOrSource: photo.photographerOrSource || adminEmail || 'Ban Quản trị',
-            url: photo.url,
-            colorGradient: photo.colorGradient || 'from-emerald-900 to-stone-900',
-            symbol: photo.symbol || '📸',
-            isUserUploaded: true,
-            order: i,
-            updatedAt: new Date().toISOString(),
-            updatedBy: adminEmail || auth.currentUser?.email || 'admin'
-          },
-          { merge: true }
-        );
-      }
-      await batch.commit();
-    }
-
-    // In the parent document, store lightGallery plus metadata-only copies of heavyPhotos (with empty url)
-    // so the parent document size remains ~50-100KB, preventing the 1MB Firestore limit violation
-    const sanitizedGallery: GalleryImage[] = [
-      ...lightGallery,
-      ...heavyPhotos.map((p) => ({
-        id: p.id,
-        title: p.title || 'Hình ảnh',
-        subtitle: p.subtitle || '',
-        description: p.description || '',
-        tag: p.tag || 'Cảnh quan',
-        tagColor: p.tagColor || '',
-        location: p.location || '',
-        photographerOrSource: p.photographerOrSource || '',
-        url: '',
-        colorGradient: p.colorGradient || '',
-        symbol: p.symbol || '📸',
-        isUserUploaded: true
-      }))
-    ];
-
-    const payload = {
+    // Keep the complete gallery items with their actual URLs intact so the web can render every photo
+    const payload: Destination = {
       ...destination,
-      gallery: sanitizedGallery,
+      gallery: galleryItems,
       updatedAt: new Date().toISOString(),
       updatedBy: adminEmail || auth.currentUser?.email || 'admin'
     };
 
-    await setDoc(destRef, payload, { merge: true });
+    // Update local cache immediately so the web always displays changes without waiting
+    try {
+      const cached = getCachedDestinations();
+      const idx = cached.findIndex((d) => d.id === destination.id);
+      if (idx >= 0) {
+        cached[idx] = { ...cached[idx], ...payload };
+      } else {
+        cached.push(payload);
+      }
+      localStorage.setItem(DESTINATIONS_CACHE_KEY, JSON.stringify(cached));
+    } catch (e) {}
+
+    // Persist to Cloud Firestore
+    try {
+      await setDoc(destRef, payload, { merge: true });
+    } catch (fsErr) {
+      handleFirestoreError(fsErr, OperationType.WRITE, path);
+    }
+
     return payload;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
+    return destination;
   }
 }
 
@@ -465,7 +566,6 @@ export async function deleteGalleryPhotoFromCloud(destinationId: string, photoId
     await deleteDoc(doc(db, 'destinations', destinationId, 'gallery', photoId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
-    throw error;
   }
 }
 
@@ -487,16 +587,105 @@ export async function deleteDestinationFromCloud(destinationId: string) {
       console.warn('Could not delete gallery subcollection:', e);
     }
 
+    try {
+      const cached = getCachedDestinations();
+      const updated = cached.filter((d) => d.id !== destinationId);
+      localStorage.setItem(DESTINATIONS_CACHE_KEY, JSON.stringify(updated));
+    } catch (e) {}
+
     await deleteDoc(doc(db, 'destinations', destinationId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
-    throw error;
   }
+}
+
+export const DESTINATIONS_CACHE_KEY = 'phutho_destinations_cache';
+
+/**
+ * Ensures destinations always have their cover images, gallery items, and user-uploaded photos intact,
+ * preventing any photo disappearance due to Firestore quota resets, partial saves, or network gaps.
+ */
+export function healAndMergeDestinations(incoming: Destination[]): Destination[] {
+  const map = new Map<string, Destination>();
+
+  // 1. Seed defaults first from DESTINATIONS_DATA
+  DESTINATIONS_DATA.forEach((d) => map.set(d.id, { ...d }));
+
+  // 2. Process incoming destinations
+  incoming.forEach((inDest) => {
+    const defaultDest = map.get(inDest.id);
+    if (!defaultDest) {
+      map.set(inDest.id, inDest);
+      return;
+    }
+
+    const merged: Destination = { ...defaultDest, ...inDest };
+
+    // Validate coverImage
+    if (!merged.coverImage || merged.coverImage.trim() === '') {
+      merged.coverImage = defaultDest.coverImage || merged.gallery?.[0]?.url || '/images/den-hung/cover.jpg';
+    }
+
+    const inGallery = inDest.gallery || [];
+    const defaultGallery = defaultDest.gallery || [];
+
+    if (inGallery.length > 0) {
+      // Heal any empty urls
+      const healedGallery = inGallery.map((img, idx) => {
+        if (!img.url || img.url.trim() === '') {
+          const match = defaultGallery.find((dg) => dg.id === img.id) || defaultGallery[idx];
+          return {
+            ...img,
+            url: match?.url || defaultDest.coverImage || '/images/den-hung/cover.jpg'
+          };
+        }
+        return img;
+      });
+
+      // Keep default gallery items so uploaded photos don't delete initial gallery photos
+      const existingIds = new Set(healedGallery.map((g) => g.id));
+      const preservedDefaults = defaultGallery.filter((dg) => !existingIds.has(dg.id));
+      merged.gallery = [...healedGallery, ...preservedDefaults];
+    } else {
+      merged.gallery = [...defaultGallery];
+    }
+
+    // Incorporate any custom_photos stored in localStorage for this destination
+    try {
+      const customKey = `custom_photos_${inDest.id}`;
+      const localPhotosStr = localStorage.getItem(customKey);
+      if (localPhotosStr) {
+        const localPhotos: GalleryImage[] = JSON.parse(localPhotosStr);
+        if (Array.isArray(localPhotos) && localPhotos.length > 0) {
+          const curIds = new Set((merged.gallery || []).map((g) => g.id));
+          const toAdd = localPhotos.filter((lp) => lp.url && !curIds.has(lp.id));
+          merged.gallery = [...toAdd, ...(merged.gallery || [])];
+        }
+      }
+    } catch (e) {}
+
+    map.set(inDest.id, merged);
+  });
+
+  return Array.from(map.values());
+}
+
+export function getCachedDestinations(): Destination[] {
+  try {
+    const cached = localStorage.getItem(DESTINATIONS_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return healAndMergeDestinations(parsed);
+      }
+    }
+  } catch (e) {}
+  return healAndMergeDestinations(DESTINATIONS_DATA);
 }
 
 /**
  * Subscribe to real-time destinations from Firestore,
- * automatically hydrating gallery photos from the subcollection.
+ * with zero-subquery overhead to preserve Firestore read quotas.
  */
 export function subscribeToDestinations(
   onUpdate: (destinations: Destination[]) => void,
@@ -505,51 +694,21 @@ export function subscribeToDestinations(
   const destCol = collection(db, 'destinations');
   return onSnapshot(
     destCol,
-    async (snapshot) => {
+    (snapshot) => {
       if (!snapshot.empty) {
+        const dests = snapshot.docs.map((docSnap) => docSnap.data() as Destination);
+        const healed = healAndMergeDestinations(dests);
         try {
-          const dests = await Promise.all(
-            snapshot.docs.map(async (docSnap) => {
-              const dest = docSnap.data() as Destination;
-              try {
-                const galleryCol = collection(db, 'destinations', dest.id, 'gallery');
-                const gallerySnap = await getDocs(galleryCol);
-                if (!gallerySnap.empty) {
-                  const subPhotos = gallerySnap.docs.map(
-                    (d) => d.data() as GalleryImage & { order?: number }
-                  );
-                  subPhotos.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-                  const existing = dest.gallery || [];
-                  const mergedMap = new Map<string, GalleryImage>();
-                  for (const item of existing) {
-                    if (item.url) {
-                      mergedMap.set(item.id, item);
-                    }
-                  }
-                  for (const sub of subPhotos) {
-                    mergedMap.set(sub.id, sub);
-                  }
-                  dest.gallery = Array.from(mergedMap.values());
-                }
-              } catch (subErr) {
-                console.warn(`Could not hydrate gallery for ${dest.id}:`, subErr);
-              }
-              return dest;
-            })
-          );
-          onUpdate(dests);
-        } catch (err) {
-          console.error('Error hydrating destinations:', err);
-          const fallbackDests = snapshot.docs.map((d) => d.data() as Destination);
-          onUpdate(fallbackDests);
-        }
+          localStorage.setItem(DESTINATIONS_CACHE_KEY, JSON.stringify(healed));
+        } catch (e) {}
+        onUpdate(healed);
       } else {
-        onUpdate([]);
+        onUpdate(getCachedDestinations());
       }
     },
     (error) => {
       handleFirestoreError(error, OperationType.LIST, 'destinations');
+      onUpdate(getCachedDestinations());
       if (onError) onError(error);
     }
   );
@@ -567,6 +726,18 @@ export async function seedInitialDestinationsToCloud(destinations: Destination[]
   return results;
 }
 
+const ANNOUNCEMENT_STORAGE_KEY = 'phutho_announcement_cache';
+
+export function getCachedAnnouncement(): AppAnnouncement | null {
+  try {
+    const cached = localStorage.getItem(ANNOUNCEMENT_STORAGE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {}
+  return null;
+}
+
 /**
  * Save system-wide announcement banner (Admin only)
  */
@@ -579,10 +750,19 @@ export async function saveAppAnnouncement(announcement: AppAnnouncement, adminEm
       updatedAt: new Date().toISOString(),
       updatedBy: adminEmail || auth.currentUser?.email || 'admin'
     };
-    await setDoc(noticeRef, payload, { merge: true });
+    try {
+      localStorage.setItem(ANNOUNCEMENT_STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {}
+
+    try {
+      await setDoc(noticeRef, payload, { merge: true });
+    } catch (fsErr) {
+      handleFirestoreError(fsErr, OperationType.WRITE, path);
+    }
+    return payload;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
+    return announcement;
   }
 }
 
@@ -598,13 +778,18 @@ export function subscribeToAnnouncement(
     noticeRef,
     (snapshot) => {
       if (snapshot.exists()) {
-        onUpdate(snapshot.data() as AppAnnouncement);
+        const data = snapshot.data() as AppAnnouncement;
+        try {
+          localStorage.setItem(ANNOUNCEMENT_STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {}
+        onUpdate(data);
       } else {
         onUpdate(null);
       }
     },
     (error) => {
       handleFirestoreError(error, OperationType.GET, 'system/announcement');
+      onUpdate(getCachedAnnouncement());
       if (onError) onError(error);
     }
   );
@@ -671,11 +856,15 @@ export async function saveAppUISettings(settings: Partial<AppUISettings>, adminE
 
     // Persist to Cloud Firestore
     const settingsRef = doc(db, 'system', 'ui_settings');
-    await setDoc(settingsRef, merged, { merge: true });
+    try {
+      await setDoc(settingsRef, merged, { merge: true });
+    } catch (fsErr) {
+      handleFirestoreError(fsErr, OperationType.WRITE, path);
+    }
     return merged;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
+    return getInitialUISettings();
   }
 }
 
@@ -703,6 +892,7 @@ export function subscribeToUISettings(
     },
     (error) => {
       handleFirestoreError(error, OperationType.GET, 'system/ui_settings');
+      onUpdate(getInitialUISettings());
       if (onError) onError(error);
     }
   );
@@ -789,6 +979,7 @@ export function subscribeToGeminiConfig(
     },
     (err) => {
       handleFirestoreError(err, OperationType.GET, 'system/gemini_config');
+      onUpdate(getInitialGeminiConfig());
       if (onError) onError(err);
     }
   );

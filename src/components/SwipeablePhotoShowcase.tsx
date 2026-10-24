@@ -213,6 +213,10 @@ export const SwipeablePhotoShowcase: React.FC<SwipeablePhotoShowcaseProps> = ({
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-opacity duration-300"
               draggable={false}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/images/den-hung/1.jpg';
+              }}
             />
           ) : (
             <div

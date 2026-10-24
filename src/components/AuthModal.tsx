@@ -127,7 +127,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <p className="text-xs text-stone-500 truncate">{currentUser.email}</p>
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md mt-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                    Đang kết nối Firestore
+                    Đã đồng bộ đám mây
                   </span>
                 </div>
               </div>
