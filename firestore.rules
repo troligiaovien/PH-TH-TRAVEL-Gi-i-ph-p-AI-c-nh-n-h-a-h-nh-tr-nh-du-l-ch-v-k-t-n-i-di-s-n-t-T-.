@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'cuongnga8185@gmail.com' ||
+        request.auth.token.email == 'viet2903edu@gmail.com'
+      );
+    }
+
+    // Default deny for unmatched documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Test connection doc
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User profiles and personal subcollections
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+
+      match /favorites/{favoriteId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /notes/{noteId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Destinations collection & subcollections - publicly readable, writable by admins only
+    match /destinations/{destinationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /{subcollection=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    // System configurations & announcements - readable by all, writable by admins only
+    match /system/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PHÚ THỌ TRAVEL | Khám Phá Du Lịch Đất Tổ</title>
+    <meta name="description" content="Nền tảng du lịch số khám phá Phú Thọ: bản đồ tương tác, di sản văn hóa Hùng Vương, danh lam thắng cảnh, cẩm nang và lịch trình trải nghiệm." />
+    <meta property="og:title" content="PHÚ THỌ TRAVEL | Khám Phá Du Lịch Đất Tổ" />
+    <meta property="og:description" content="Chạm vào cội nguồn – Khám phá vẻ đẹp Đất Tổ qua bản đồ số và cẩm nang du lịch trải nghiệm." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      // Polyfill setter for window.fetch to prevent browser extension conflicts
+      try {
+        var _currentFetch = window.fetch ? window.fetch.bind(window) : undefined;
+        Object.defineProperty(window, 'fetch', {
+          get: function() {
+            return _currentFetch;
+          },
+          set: function(fn) {
+            _currentFetch = fn;
+          },
+          configurable: true,
+          enumerable: true
+        });
+      } catch (e) {}
+
+      // Catch and silence unhandled extension injection errors
+      window.addEventListener('error', function(event) {
+        if (
+          (event.filename && event.filename.indexOf('chrome-extension://') !== -1) ||
+          (event.message && (
+            event.message.indexOf('Cannot set property fetch') !== -1 ||
+            event.message.indexOf('fetch of #<Window>') !== -1
+          ))
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+    </script>
+  </head>
+  <body class="bg-stone-50 text-stone-800 antialiased selection:bg-emerald-800 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for authenticated visitors",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "email", "createdAt"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "Favorited destinations per user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "destinationId": { "type": "string" },
+        "destinationName": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "destinationId", "userId", "createdAt"]
+    },
+    "TravelNote": {
+      "title": "TravelNote",
+      "description": "Personal travel notes and itinerary plans for destinations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "destinationId": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "destinationId", "userId", "content", "createdAt"]
+    },
+    "Destination": {
+      "title": "Destination",
+      "description": "Cultural, historical and scenic destinations managed by admins",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "kicker": { "type": "string" },
+        "category": { "type": "string" },
+        "district": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "fullDescription": { "type": "string" },
+        "historicalValue": { "type": "string" },
+        "verifiedAddress": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "googleMapsUrl": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "district", "shortDescription"]
+    },
+    "AppAnnouncement": {
+      "title": "AppAnnouncement",
+      "description": "Global announcement banner managed by admins",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "warning", "festival"] },
+        "link": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["enabled", "title", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/users/{userId}/favorites/{favoriteId}": {
+      "schema": "Favorite",
+      "description": "User saved favorite destinations"
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": "TravelNote",
+      "description": "User personal travel notes and plans"
+    },
+    "/destinations/{destinationId}": {
+      "schema": "Destination",
+      "description": "Admin controlled destination database"
+    },
+    "/system/{settingId}": {
+      "schema": "AppAnnouncement",
+      "description": "System-wide settings and announcements controlled by admins"
+    }
+  }
+}

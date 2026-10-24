@@ -1,0 +1,6 @@
+{
+  "name": "Phú Thọ Travel - Khám Phá Du Lịch Đất Tổ",
+  "description": "Nền tảng du lịch số khám phá Phú Thọ: bản đồ tương tác, di sản văn hóa Hùng Vương, danh lam thắng cảnh, cẩm nang và lịch trình trải nghiệm.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
