@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-1.5 flex items-center justify-between gap-4 sm:gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-1.5 flex items-center justify-between gap-3 sm:gap-6">
         {/* Zone 1: Brand Wordmark / Custom Logo */}
         <button
           onClick={() => handleLinkClick('destinations')}

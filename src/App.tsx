@@ -13,7 +13,8 @@ import {
   subscribeToAnnouncement,
   getInitialUISettings,
   subscribeToUISettings,
-  DEFAULT_UI_SETTINGS
+  DEFAULT_UI_SETTINGS,
+  syncUserProfile
 } from './lib/firebase';
 import { Navbar, MainTabType } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -58,13 +59,15 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user) {
+        // Sync full profile directly to Firestore 'users' collection
+        syncUserProfile(user).catch((e) => console.warn('Sync profile error:', e));
         if (isUserAdmin(user.email)) {
           addToast(
             `Chào mừng Quản trị viên ${user.displayName || user.email}! Bạn có toàn quyền quản trị và chỉnh sửa hệ thống.`,
             'success'
           );
         } else {
-          addToast(`Đã đồng bộ với Firebase cho ${user.displayName || user.email}`, 'success');
+          addToast(`Chào mừng ${user.displayName || user.email}!`, 'success');
         }
       }
     });
@@ -131,13 +134,25 @@ export default function App() {
     setModalInitialTab(tab);
   };
 
-  // Load favorites from localStorage
+  // Load favorites from localStorage (default is empty [])
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('phutho_travel_favorites');
-      return saved ? JSON.parse(saved) : ['den-hung', 'doi-che-long-coc'];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      // Clean up legacy hardcoded default locations
+      if (
+        Array.isArray(parsed) &&
+        parsed.length === 2 &&
+        parsed.includes('den-hung') &&
+        parsed.includes('doi-che-long-coc')
+      ) {
+        localStorage.removeItem('phutho_travel_favorites');
+        return [];
+      }
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return ['den-hung', 'doi-che-long-coc'];
+      return [];
     }
   });
 
@@ -145,11 +160,13 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Upload any existing local favorites to cloud
-    favorites.forEach((favId) => {
-      const dest = destinations.find((d) => d.id === favId);
-      saveFavoriteToCloud(currentUser.uid, favId, dest?.name || favId).catch(() => {});
-    });
+    // Upload existing local favorites to cloud only if user has saved items
+    if (favorites.length > 0) {
+      favorites.forEach((favId) => {
+        const dest = destinations.find((d) => d.id === favId);
+        saveFavoriteToCloud(currentUser.uid, favId, dest?.name || favId).catch(() => {});
+      });
+    }
 
     // Listen to real-time changes from Firestore
     const unsubscribeFavs = subscribeToFavorites(
@@ -303,7 +320,7 @@ export default function App() {
 
         {/* Clean View Tabs Switcher Bar */}
         <div className="bg-white/95 backdrop-blur-md border-b border-stone-200/90 sticky top-16 z-30 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between overflow-x-auto">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between overflow-x-auto">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleTabChange('destinations')}

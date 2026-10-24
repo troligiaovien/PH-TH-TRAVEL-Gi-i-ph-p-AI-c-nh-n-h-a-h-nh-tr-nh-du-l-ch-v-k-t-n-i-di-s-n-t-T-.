@@ -177,3 +177,24 @@ export interface AppUISettings {
   updatedBy?: string;
 }
 
+export interface RegisteredUser {
+  id: string;
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: 'admin' | 'user';
+  createdAt?: string;
+  lastLoginAt?: string;
+  updatedAt?: string;
+  providerId?: string;
+  emailVerified?: boolean;
+}
+
+export interface GeminiConfig {
+  rawKeysText: string;
+  apiKeys: string[];
+  updatedAt?: string;
+  updatedBy?: string;
+}
+

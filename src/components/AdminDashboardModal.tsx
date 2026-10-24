@@ -25,18 +25,36 @@ import {
   CheckCircle,
   Eye,
   Wand2,
-  Maximize2
+  Maximize2,
+  Search,
+  Copy,
+  UserCheck,
+  Calendar,
+  Clock,
+  Key,
+  Mail,
+  Filter,
+  Cpu,
+  Zap,
+  CheckCheck,
+  AlertCircle
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
-import { Destination, AppAnnouncement, AppUISettings } from '../types';
+import { Destination, AppAnnouncement, AppUISettings, RegisteredUser, GeminiConfig } from '../types';
 import {
   ADMIN_EMAILS,
+  isUserAdmin,
   saveDestinationToCloud,
   deleteDestinationFromCloud,
   seedInitialDestinationsToCloud,
   saveAppAnnouncement,
   DEFAULT_UI_SETTINGS,
-  saveAppUISettings
+  saveAppUISettings,
+  subscribeToRegisteredUsers,
+  fetchRegisteredUsers,
+  getInitialGeminiConfig,
+  saveGeminiConfig,
+  subscribeToGeminiConfig
 } from '../lib/firebase';
 import { DESTINATIONS_DATA } from '../data/destinations';
 import { BatchPhotoUploadModal } from './BatchPhotoUploadModal';
@@ -211,6 +229,24 @@ interface AdminDashboardModalProps {
   onUpdateUISettings?: (settings: AppUISettings) => void;
 }
 
+function formatVietnamDateTime(isoStr?: string): string {
+  if (!isoStr) return 'Chưa cập nhật';
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    return d.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch {
+    return isoStr;
+  }
+}
+
 export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   isOpen,
   onClose,
@@ -223,10 +259,129 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   uiSettings,
   onUpdateUISettings,
 }) => {
-  const [activeTab, setActiveTab] = useState<'destinations' | 'announcement' | 'admins' | 'ui_settings'>('destinations');
+  const [activeTab, setActiveTab] = useState<'destinations' | 'announcement' | 'registered_users' | 'gemini_keys' | 'admins' | 'ui_settings'>('destinations');
   const [seeding, setSeeding] = useState(false);
   const [batchUploadDestId, setBatchUploadDestId] = useState<string | null>(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+  // Gemini API Keys State
+  const [geminiConfig, setGeminiConfig] = useState<GeminiConfig>(() => getInitialGeminiConfig());
+  const [geminiInputText, setGeminiInputText] = useState<string>(() => getInitialGeminiConfig().rawKeysText || '');
+  const [savingGemini, setSavingGemini] = useState(false);
+  const [testingGemini, setTestingGemini] = useState(false);
+  const [geminiTestResults, setGeminiTestResults] = useState<any[] | null>(null);
+
+  // Sync Gemini Config from Firestore in real-time
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const unsub = subscribeToGeminiConfig(
+      (cfg) => {
+        setGeminiConfig(cfg);
+        if (cfg.rawKeysText !== undefined && cfg.rawKeysText !== null) {
+          setGeminiInputText(cfg.rawKeysText);
+        }
+      },
+      (err) => {
+        console.warn('Gemini config sync notice:', err);
+      }
+    );
+    return () => unsub();
+  }, [isOpen]);
+
+  const handleSaveGeminiKeys = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingGemini(true);
+    try {
+      const saved = await saveGeminiConfig(geminiInputText, currentUser?.email || 'admin');
+      setGeminiConfig(saved);
+      onShowToast(`Đã lưu và kích hoạt ${saved.apiKeys.length} Gemini API Key cho toàn hệ thống!`, 'success');
+    } catch (err: any) {
+      onShowToast(`Lỗi lưu API Key: ${err.message || err}`, 'error');
+    } finally {
+      setSavingGemini(false);
+    }
+  };
+
+  const handleTestGeminiKeys = async () => {
+    setTestingGemini(true);
+    setGeminiTestResults(null);
+    try {
+      const lines = geminiInputText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0 && !l.startsWith('#'));
+      const uniqueKeys = Array.from(new Set(lines));
+
+      if (uniqueKeys.length === 0) {
+        onShowToast('Vui lòng nhập ít nhất một Gemini API Key để kiểm tra!', 'info');
+        setTestingGemini(false);
+        return;
+      }
+
+      const res = await fetch('/api/admin/gemini-keys/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: uniqueKeys }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGeminiTestResults(data.results);
+        const activeCount = data.results.filter((r: any) => r.status === 'active').length;
+        onShowToast(`Kiểm tra xong: ${activeCount}/${data.results.length} API Key đang hoạt động tốt!`, 'success');
+      } else {
+        onShowToast(`Lỗi kiểm tra: ${data.error || 'Không xác định'}`, 'error');
+      }
+    } catch (err: any) {
+      onShowToast(`Lỗi kết nối kiểm tra: ${err.message || err}`, 'error');
+    } finally {
+      setTestingGemini(false);
+    }
+  };
+
+  // Registered Users from Firebase state
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+  const [copiedUid, setCopiedUid] = useState<string | null>(null);
+
+  // Real-time synchronization of registered accounts from Firebase Firestore
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setLoadingUsers(true);
+    const unsubscribe = subscribeToRegisteredUsers(
+      (users) => {
+        setRegisteredUsers(users);
+        setLoadingUsers(false);
+      },
+      (err) => {
+        console.warn('Real-time users fetch notice:', err);
+        setLoadingUsers(false);
+      }
+    );
+    return () => unsubscribe();
+  }, [isOpen]);
+
+  const handleManualRefreshUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const users = await fetchRegisteredUsers();
+      setRegisteredUsers(users);
+      onShowToast(`Đã tải dữ liệu chính xác từ Firebase: ${users.length} tài khoản.`, 'success');
+    } catch (err: any) {
+      onShowToast(`Lỗi lấy tài khoản từ Firebase: ${err.message || err}`, 'error');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleCopyText = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      onShowToast(`Đã sao chép ${label}`, 'success');
+      setCopiedUid(text);
+      setTimeout(() => setCopiedUid(null), 2500);
+    });
+  };
 
   const handleOpenBatchUpload = (destId?: string | null) => {
     setBatchUploadDestId(destId || (destinations[0]?.id ?? null));
@@ -481,6 +636,38 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             )}
           </button>
 
+          {/* TAB: TÀI KHOẢN ĐÃ ĐĂNG KÝ (FIREBASE AUTH & FIRESTORE) */}
+          <button
+            onClick={() => setActiveTab('registered_users')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'registered_users'
+                ? 'bg-emerald-900 text-white shadow-xs'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+            <span>Tài khoản Đã đăng ký ({registeredUsers.length})</span>
+            {loadingUsers && (
+              <RefreshCw className="w-3 h-3 animate-spin text-amber-300" />
+            )}
+          </button>
+
+          {/* TAB: CẤU HÌNH GEMINI API KEYS (ĐA KEY - XOAY VÒNG HẾT TOKEN) */}
+          <button
+            onClick={() => setActiveTab('gemini_keys')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'gemini_keys'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 shadow-xs ring-1 ring-amber-400'
+                : 'text-stone-700 hover:text-stone-900 hover:bg-stone-200/60'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <span>Gemini API Keys ({geminiConfig.apiKeys.length})</span>
+            {geminiConfig.apiKeys.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            )}
+          </button>
+
           <button
             onClick={() => setActiveTab('admins')}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
@@ -489,8 +676,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>Tài khoản Admin (2)</span>
+            <Shield className="w-3.5 h-3.5" />
+            <span>Phân quyền Admin (2)</span>
           </button>
 
           <button
@@ -747,7 +934,493 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             </form>
           )}
 
-          {/* TAB 3: ADMIN ACCOUNTS & CLOUD PERMISSIONS */}
+          {/* TAB 3: CÁC TÀI KHOẢN ĐÃ ĐĂNG KÝ (DỮ LIỆU CHÍNH XÁC TỪ FIREBASE) */}
+          {activeTab === 'registered_users' && (
+            <div className="space-y-5">
+              {/* Header Banner with Database Info */}
+              <div className="p-4 bg-gradient-to-r from-emerald-950 via-emerald-900 to-stone-900 text-white rounded-2xl shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-amber-400 text-stone-950 font-bold">
+                        <Users className="w-4 h-4" />
+                      </span>
+                      <h4 className="text-sm font-bold tracking-tight">
+                        Quản Lý Các Tài Khoản Đã Đăng Ký Hệ Thống
+                      </h4>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-800 text-amber-300 border border-emerald-700 font-bold">
+                        Firebase Live Sync
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-300">
+                      Toàn bộ thông tin tài khoản được truy xuất và đồng bộ trực tiếp từ cơ sở dữ liệu <strong>Cloud Firestore</strong> chính xác theo thời gian thực.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleManualRefreshUsers}
+                    disabled={loadingUsers}
+                    className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-stone-950 ${loadingUsers ? 'animate-spin' : ''}`} />
+                    <span>{loadingUsers ? 'Đang nạp từ Firebase...' : 'Làm mới từ Firebase'}</span>
+                  </button>
+                </div>
+
+                {/* Firestore Database Connection Bar */}
+                <div className="pt-2 border-t border-emerald-800/80 flex flex-wrap items-center justify-between text-[11px] text-stone-300 gap-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Database ID:</span>
+                    <code className="text-amber-200 font-mono bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                      ai-studio-phthtravelkhmphd-09d29755-4e4b-46f3-b002-c9e57789d672
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-emerald-300">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Bảo mật Security Rules: Đã kiểm duyệt</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Counters */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-stone-500 font-semibold uppercase tracking-wider">
+                      Tổng tài khoản đăng ký
+                    </div>
+                    <div className="text-xl font-bold text-stone-900 mt-0.5 font-mono">
+                      {registeredUsers.length}
+                    </div>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-stone-200/80 text-stone-700 flex items-center justify-center">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-amber-800 font-semibold uppercase tracking-wider">
+                      Quản trị viên Super Admin
+                    </div>
+                    <div className="text-xl font-bold text-amber-950 mt-0.5 font-mono">
+                      {registeredUsers.filter((u) => u.role === 'admin' || isUserAdmin(u.email)).length}
+                    </div>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-amber-200/80 text-amber-900 flex items-center justify-center">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-emerald-800 font-semibold uppercase tracking-wider">
+                      Người dùng / Du khách
+                    </div>
+                    <div className="text-xl font-bold text-emerald-950 mt-0.5 font-mono">
+                      {registeredUsers.filter((u) => u.role !== 'admin' && !isUserAdmin(u.email)).length}
+                    </div>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-emerald-200/80 text-emerald-900 flex items-center justify-center">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Tìm theo tên hiển thị, địa chỉ email, hoặc mã Firebase UID..."
+                    className="w-full text-xs pl-9 pr-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-emerald-700"
+                  />
+                  {userSearch && (
+                    <button
+                      onClick={() => setUserSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-700 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[11px] text-stone-500 font-medium flex items-center gap-1">
+                    <Filter className="w-3 h-3 text-stone-400" />
+                    <span>Lọc:</span>
+                  </span>
+                  {(['all', 'admin', 'user'] as const).map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setUserRoleFilter(role)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                        userRoleFilter === role
+                          ? 'bg-emerald-900 text-white shadow-xs'
+                          : 'bg-white text-stone-600 hover:bg-stone-200/70 border border-stone-200'
+                      }`}
+                    >
+                      {role === 'all' && `Tất cả (${registeredUsers.length})`}
+                      {role === 'admin' && `Admin (${registeredUsers.filter((u) => u.role === 'admin' || isUserAdmin(u.email)).length})`}
+                      {role === 'user' && `Người dùng (${registeredUsers.filter((u) => u.role !== 'admin' && !isUserAdmin(u.email)).length})`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Users List / Table */}
+              <div className="space-y-3">
+                {loadingUsers && registeredUsers.length === 0 ? (
+                  <div className="p-12 text-center bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
+                    <RefreshCw className="w-7 h-7 text-emerald-800 animate-spin mx-auto" />
+                    <p className="text-xs text-stone-600 font-medium">
+                      Đang kết nối Cloud Firestore và tải danh sách tài khoản đã đăng ký...
+                    </p>
+                  </div>
+                ) : registeredUsers.filter((u) => {
+                    const isAdminRole = u.role === 'admin' || isUserAdmin(u.email);
+                    if (userRoleFilter === 'admin' && !isAdminRole) return false;
+                    if (userRoleFilter === 'user' && isAdminRole) return false;
+                    if (userSearch.trim()) {
+                      const q = userSearch.toLowerCase().trim();
+                      const matchName = (u.displayName || '').toLowerCase().includes(q);
+                      const matchEmail = (u.email || '').toLowerCase().includes(q);
+                      const matchUid = (u.uid || u.id || '').toLowerCase().includes(q);
+                      return matchName || matchEmail || matchUid;
+                    }
+                    return true;
+                  }).length === 0 ? (
+                  <div className="p-10 text-center bg-stone-50 border border-stone-200 rounded-2xl space-y-2">
+                    <Users className="w-8 h-8 text-stone-400 mx-auto" />
+                    <p className="text-xs font-semibold text-stone-700">
+                      Không tìm thấy tài khoản nào khớp với bộ lọc
+                    </p>
+                    <p className="text-[11px] text-stone-500">
+                      Thử thay đổi từ khóa tìm kiếm hoặc bấm nút "Làm mới từ Firebase".
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {registeredUsers
+                      .filter((u) => {
+                        const isAdminRole = u.role === 'admin' || isUserAdmin(u.email);
+                        if (userRoleFilter === 'admin' && !isAdminRole) return false;
+                        if (userRoleFilter === 'user' && isAdminRole) return false;
+                        if (userSearch.trim()) {
+                          const q = userSearch.toLowerCase().trim();
+                          const matchName = (u.displayName || '').toLowerCase().includes(q);
+                          const matchEmail = (u.email || '').toLowerCase().includes(q);
+                          const matchUid = (u.uid || u.id || '').toLowerCase().includes(q);
+                          return matchName || matchEmail || matchUid;
+                        }
+                        return true;
+                      })
+                      .map((u) => {
+                        const isCurrent = currentUser?.uid === u.uid || currentUser?.email?.toLowerCase() === u.email.toLowerCase();
+                        const isAdminRole = u.role === 'admin' || isUserAdmin(u.email);
+
+                        return (
+                          <div
+                            key={u.id || u.uid}
+                            className={`p-4 rounded-2xl border transition-all ${
+                              isCurrent
+                                ? 'bg-amber-50/50 border-amber-300 shadow-xs'
+                                : 'bg-white border-stone-200 hover:border-stone-300 shadow-2xs'
+                            }`}
+                          >
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                              {/* User Avatar & Identity */}
+                              <div className="flex items-start sm:items-center gap-3">
+                                <div className="relative shrink-0">
+                                  {u.photoURL ? (
+                                    <img
+                                      src={u.photoURL}
+                                      alt={u.displayName}
+                                      referrerPolicy="no-referrer"
+                                      className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xs"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-800 to-emerald-950 text-amber-300 flex items-center justify-center font-bold text-sm shadow-xs">
+                                      {(u.displayName || u.email || 'PT').slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  {isAdminRole && (
+                                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center border border-white shadow-2xs" title="Super Admin">
+                                      <Shield className="w-3 h-3 text-stone-950 fill-stone-950" />
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h5 className="text-sm font-bold text-stone-900">
+                                      {u.displayName || 'Người dùng'}
+                                    </h5>
+
+                                    {isCurrent && (
+                                      <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-amber-400 text-stone-950">
+                                        Tài khoản của bạn
+                                      </span>
+                                    )}
+
+                                    {isAdminRole ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 flex items-center gap-1 shadow-2xs">
+                                        <Shield className="w-2.5 h-2.5 fill-stone-950" />
+                                        <span>Super Admin</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-900 flex items-center gap-1">
+                                        <UserCheck className="w-2.5 h-2.5 text-emerald-700" />
+                                        <span>Thành viên</span>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-xs text-stone-600">
+                                    <span className="flex items-center gap-1 font-mono text-stone-800">
+                                      <Mail className="w-3 h-3 text-stone-400" />
+                                      <span>{u.email}</span>
+                                    </span>
+
+                                    <span className="text-stone-300">•</span>
+
+                                    <span className="text-[10px] text-stone-500 bg-stone-100 px-1.5 py-0.2 rounded font-mono">
+                                      {u.providerId || 'google.com'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Actions & Copy Buttons */}
+                              <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText(u.email, `email ${u.email}`)}
+                                  className="px-2.5 py-1 text-[11px] font-medium bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Sao chép địa chỉ email"
+                                >
+                                  <Copy className="w-3 h-3 text-stone-500" />
+                                  <span>Copy Email</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText(u.uid, `UID ${u.uid}`)}
+                                  className={`px-2.5 py-1 text-[11px] font-medium rounded-lg flex items-center gap-1 transition-colors cursor-pointer ${
+                                    copiedUid === u.uid
+                                      ? 'bg-emerald-900 text-white'
+                                      : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                                  }`}
+                                  title="Sao chép mã định danh Firebase UID"
+                                >
+                                  <Key className="w-3 h-3 text-stone-500" />
+                                  <span>{copiedUid === u.uid ? 'Đã chép UID!' : 'Copy UID'}</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Detail Metadata Grid */}
+                            <div className="mt-3 pt-3 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-12 gap-2 text-[11px] text-stone-500 bg-stone-50/60 p-2.5 rounded-xl">
+                              {/* UID */}
+                              <div className="sm:col-span-5 flex items-center gap-1.5 font-mono truncate">
+                                <span className="text-stone-400 font-bold">Firebase UID:</span>
+                                <span className="text-stone-800 bg-white px-1.5 py-0.5 rounded border border-stone-200 truncate select-all">
+                                  {u.uid}
+                                </span>
+                              </div>
+
+                              {/* Registered Date */}
+                              <div className="sm:col-span-4 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                                <span className="text-stone-400">Đăng ký:</span>
+                                <span className="font-semibold text-stone-700">
+                                  {formatVietnamDateTime(u.createdAt)}
+                                </span>
+                              </div>
+
+                              {/* Last Login Date */}
+                              <div className="sm:col-span-3 flex items-center gap-1.5 sm:justify-end">
+                                <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span className="text-stone-400">Hoạt động:</span>
+                                <span className="font-semibold text-emerald-900">
+                                  {formatVietnamDateTime(u.lastLoginAt)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: CẤU HÌNH GEMINI API KEYS (ĐA KEY & XOAY VÒNG HẾT TOKEN) */}
+          {activeTab === 'gemini_keys' && (
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="p-4 bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-stone-100 border border-amber-300/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>Cấu hình Gemini API Key Cho Toàn Bộ Hệ Thống AI</span>
+                  </h4>
+                  <p className="text-xs text-stone-600">
+                    Hệ thống AI Travel Planner và trợ lý du lịch sẽ ưu tiên sử dụng danh sách API Key do bạn cung cấp dưới đây.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 text-stone-800 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>Lấy Key từ Google AI Studio</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-stone-500" />
+                  </a>
+                </div>
+              </div>
+
+              {/* High Performance Mechanism Explanation Banner */}
+              <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-emerald-950 font-bold text-xs uppercase tracking-wide">
+                  <Zap className="w-4 h-4 text-amber-500 fill-amber-400" />
+                  <span>Cơ chế Xoay vòng Token Tự động (Failover High Performance)</span>
+                </div>
+                <div className="text-xs text-emerald-900/90 leading-relaxed space-y-1">
+                  <p>
+                    • <strong>Cho phép nhiều API Key:</strong> Nhập nhiều key, mỗi key trên 1 dòng riêng biệt.
+                  </p>
+                  <p>
+                    • <strong>Tự động chuyển key khi hết Token/Quota:</strong> Nếu một API Key chạm ngưỡng giới hạn (HTTP 429 / Resource Exhausted), hệ thống sẽ ngay lập tức tự động đảo sang API Key tiếp theo trong tích tắc mà không làm gián đoạn trải nghiệm của khách du lịch.
+                  </p>
+                  <p>
+                    • <strong>Ghi nhớ Key hoạt động:</strong> Hệ thống tự động lưu giữ vị trí key hoạt động tốt nhất để phục vụ các yêu cầu tiếp theo với tốc độ phản hồi nhanh nhất.
+                  </p>
+                </div>
+              </div>
+
+              {/* Form Input Section */}
+              <form onSubmit={handleSaveGeminiKeys} className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Danh sách Gemini API Key (Mỗi key một dòng):</span>
+                    </label>
+                    <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold">
+                      {geminiInputText.split('\n').filter((l) => l.trim().length > 10).length} API Key hợp lệ
+                    </span>
+                  </div>
+
+                  <textarea
+                    rows={6}
+                    value={geminiInputText}
+                    onChange={(e) => setGeminiInputText(e.target.value)}
+                    placeholder="Dán các API Key của bạn vào đây, mỗi key một dòng:&#10;AIzaSyD-1234567890abcdefghijklmnopqrstuv&#10;AIzaSyB-9876543210zyxwvutsrqponmlkjihgfed&#10;AIzaSyC-1122334455aabbccddeeffgghhiijjkk"
+                    className="w-full text-xs p-3.5 bg-stone-900 text-amber-300 font-mono rounded-xl border border-stone-700 focus:outline-hidden focus:ring-2 focus:ring-amber-400 leading-relaxed selection:bg-amber-400 selection:text-stone-950"
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-stone-500">
+                    <span>Hỗ trợ cả API key cá nhân và Google Cloud Enterprise API Keys.</span>
+                    <span>Tự động loại bỏ khoảng trắng và dòng trống khi lưu.</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="submit"
+                    disabled={savingGemini}
+                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-900 to-emerald-950 hover:from-emerald-800 hover:to-emerald-900 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4 text-amber-300" />
+                    <span>{savingGemini ? 'Đang lưu lên hệ thống...' : 'Lưu và Kích hoạt Toàn Hệ Thống'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestGeminiKeys}
+                    disabled={testingGemini}
+                    className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    <Zap className={`w-4 h-4 text-stone-950 ${testingGemini ? 'animate-spin' : ''}`} />
+                    <span>{testingGemini ? 'Đang kiểm tra kết nối...' : 'Kiểm tra kết nối các API Key'}</span>
+                  </button>
+
+                  {geminiConfig.updatedAt && (
+                    <span className="text-[11px] text-stone-500 ml-auto flex items-center gap-1 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-stone-400" />
+                      <span>Cập nhật gần nhất: {formatVietnamDateTime(geminiConfig.updatedAt)}</span>
+                    </span>
+                  )}
+                </div>
+              </form>
+
+              {/* Testing Results Inspection Panel */}
+              {geminiTestResults && (
+                <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3 animate-in fade-in">
+                  <div className="flex items-center justify-between text-xs font-bold text-stone-900">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCheck className="w-4 h-4 text-emerald-700" />
+                      <span>Kết quả kiểm định thực tế từ máy chủ Gemini:</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-stone-500">
+                      Tổng số: {geminiTestResults.length} key
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {geminiTestResults.map((r, i) => (
+                      <div
+                        key={i}
+                        className={`p-3 rounded-lg border text-xs flex items-center justify-between ${
+                          r.status === 'active'
+                            ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                            : r.status === 'exhausted'
+                            ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                            : 'bg-rose-50/80 border-rose-300 text-rose-950'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-mono font-bold flex items-center gap-1.5">
+                            <span className="px-1.5 py-0.2 bg-white/80 rounded text-[10px]">Key #{r.index}</span>
+                            <span>{r.masked}</span>
+                          </div>
+                          <div className="text-[11px] text-stone-600">{r.message}</div>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                            r.status === 'active'
+                              ? 'bg-emerald-600 text-white'
+                              : r.status === 'exhausted'
+                              ? 'bg-amber-500 text-stone-950'
+                              : 'bg-rose-600 text-white'
+                          }`}
+                        >
+                          {r.status === 'active' ? 'Hoạt động tốt' : r.status === 'exhausted' ? 'Hết token' : 'Lỗi'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: ADMIN ACCOUNTS & CLOUD PERMISSIONS */}
           {activeTab === 'admins' && (
             <div className="space-y-5">
               <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1.5">

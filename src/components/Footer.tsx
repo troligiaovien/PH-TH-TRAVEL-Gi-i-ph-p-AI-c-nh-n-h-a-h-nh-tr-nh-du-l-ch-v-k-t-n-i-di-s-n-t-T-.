@@ -57,7 +57,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateSection, uiSettings })
             </p>
 
             <p className="text-stone-400 text-xs leading-relaxed max-w-sm">
-              Nền tảng du lịch số độc lập do nhóm học sinh phát triển, cung cấp bản đồ số tương tác, liên kết định vị chuẩn xác, thông tin di sản văn hóa và cẩm nang hành trình cho du khách muôn phương.
+              Nền tảng du lịch số do nhóm học sinh phát triển, cung cấp bản đồ số tương tác, liên kết định vị chuẩn xác, thông tin di sản văn hóa và cẩm nang hành trình cho du khách muôn phương.
             </p>
 
             <div className="pt-2 flex items-center gap-2 text-stone-400">
@@ -132,11 +132,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateSection, uiSettings })
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-stone-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-stone-500">
           <div>
-            © {new Date().getFullYear()} PHÚ THỌ TRAVEL. Bản quyền dự án học sinh sáng tạo Đất Tổ.
+            © {new Date().getFullYear()} PHÚ THỌ TRAVEL. Bản quyền dự án học sinh trường THCS Đội Cấn.
           </div>
           <div className="flex items-center gap-4">
-            <span>Dữ liệu xác minh: Tháng 02/2026</span>
-            <span>Hỗ trợ định vị GPS toàn cầu</span>
           </div>
         </div>
       </div>

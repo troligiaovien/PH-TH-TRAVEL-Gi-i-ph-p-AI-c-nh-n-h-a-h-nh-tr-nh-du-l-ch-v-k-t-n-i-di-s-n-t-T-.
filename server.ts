@@ -16,21 +16,138 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Initialize Google GenAI client
-const apiKey = process.env.GEMINI_API_KEY;
-let ai: GoogleGenAI | null = null;
-if (apiKey) {
-  ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
-} else {
-  console.warn('GEMINI_API_KEY is not defined in environment. Server will use algorithmic fallback.');
+// In-memory pool of Gemini API keys configured by Admin and environment
+let geminiKeysPool: string[] = [];
+if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
+  geminiKeysPool.push(process.env.GEMINI_API_KEY.trim());
 }
+let currentActiveKeyIndex = 0;
+
+const aiClientCache = new Map<string, GoogleGenAI>();
+
+function getGenAIClient(key: string): GoogleGenAI {
+  let client = aiClientCache.get(key);
+  if (!client) {
+    client = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+    aiClientCache.set(key, client);
+  }
+  return client;
+}
+
+function maskKey(key: string): string {
+  if (!key || key.length <= 8) return '***';
+  return key.slice(0, 7) + '...' + key.slice(-4);
+}
+
+/**
+ * Execute Gemini operations with automated key failover & rotation
+ * When an API key hits rate limits or token exhaustion, immediately rotates to the next key.
+ */
+async function callGeminiWithKeyRotation<T>(
+  fn: (aiClient: GoogleGenAI, key: string, index: number) => Promise<T>,
+  requestProvidedKeys: string[] = []
+): Promise<T> {
+  const combinedKeys = Array.from(
+    new Set([...requestProvidedKeys, ...geminiKeysPool, process.env.GEMINI_API_KEY])
+  ).filter((k): k is string => Boolean(k && k.trim().length > 10));
+
+  if (combinedKeys.length === 0) {
+    throw new Error('Chưa có Gemini API Key nào được cấu hình trong hệ thống! Vui lòng vào trang Admin để nhập API Key.');
+  }
+
+  const total = combinedKeys.length;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < total; attempt++) {
+    const keyIdx = (currentActiveKeyIndex + attempt) % total;
+    const candidateKey = combinedKeys[keyIdx];
+    const masked = maskKey(candidateKey);
+
+    try {
+      const client = getGenAIClient(candidateKey);
+      const res = await fn(client, candidateKey, keyIdx);
+      // Succeeded: keep pointer at this active key for maximum performance on next requests
+      currentActiveKeyIndex = keyIdx;
+      return res;
+    } catch (err: any) {
+      lastError = err;
+      const errMsg = err?.message || String(err);
+      console.warn(`[Gemini Failover] Key #${keyIdx + 1} (${masked}) gặp lỗi: ${errMsg}. ${attempt < total - 1 ? 'Tự động đảo sang API Key tiếp theo...' : 'Đã thử qua toàn bộ danh sách API Keys.'}`);
+    }
+  }
+
+  throw new Error(`Toàn bộ ${total} Gemini API Key đều hết hạn ngạch Token hoặc bị lỗi: ${lastError?.message || lastError}`);
+}
+
+// Admin API endpoints for Gemini API Key management
+app.post('/api/admin/gemini-keys', (req, res) => {
+  const { keys } = req.body;
+  if (Array.isArray(keys)) {
+    const cleanKeys = keys.map((k: string) => String(k).trim()).filter((k: string) => k.length > 10);
+    geminiKeysPool = Array.from(new Set(cleanKeys));
+    currentActiveKeyIndex = 0;
+    console.log(`[Gemini Pool] Đã nạp ${geminiKeysPool.length} API Keys từ Admin.`);
+    return res.json({ success: true, count: geminiKeysPool.length });
+  }
+  return res.status(400).json({ error: 'Invalid keys array' });
+});
+
+app.get('/api/admin/gemini-keys/status', (_req, res) => {
+  return res.json({
+    count: geminiKeysPool.length,
+    activeIndex: currentActiveKeyIndex,
+    maskedKeys: geminiKeysPool.map(maskKey),
+    hasEnvKey: !!process.env.GEMINI_API_KEY
+  });
+});
+
+app.post('/api/admin/gemini-keys/test', async (req, res) => {
+  const { keys } = req.body;
+  const testKeys: string[] = Array.isArray(keys) && keys.length > 0 ? keys : geminiKeysPool;
+
+  if (testKeys.length === 0) {
+    return res.json({ success: true, results: [] });
+  }
+
+  const results = [];
+  for (let i = 0; i < testKeys.length; i++) {
+    const key = testKeys[i].trim();
+    if (!key) continue;
+    const masked = maskKey(key);
+    try {
+      const client = getGenAIClient(key);
+      await client.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: 'Hi',
+        config: { maxOutputTokens: 2 }
+      });
+      results.push({
+        index: i + 1,
+        masked,
+        status: 'active',
+        message: 'Hoạt động tốt! Token và hạn ngạch hợp lệ.'
+      });
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      const isQuota = errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota') || errMsg.includes('Quota');
+      results.push({
+        index: i + 1,
+        masked,
+        status: isQuota ? 'exhausted' : 'error',
+        message: isQuota ? 'Đã hết hạn ngạch Token (429 Quota Exceeded)' : errMsg
+      });
+    }
+  }
+
+  return res.json({ success: true, results });
+});
 
 // Build ground-truth context prompt for Gemini
 function buildKnowledgePrompt(): string {
@@ -76,10 +193,6 @@ app.post('/api/planner/generate', async (req, res) => {
     const requestForm: TripRequestForm = req.body;
     if (!requestForm) {
       return res.status(400).json({ error: 'Missing request body' });
-    }
-
-    if (!ai) {
-      return res.status(503).json({ error: 'AI service not configured on server (Missing GEMINI_API_KEY)' });
     }
 
     const knowledgePrompt = buildKnowledgePrompt();
@@ -189,29 +302,37 @@ Hãy tạo một kế hoạch du lịch hoàn chỉnh theo JSON schema sau:
   ]
 }`;
 
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          temperature: 0.3,
-        },
-      });
-    } catch (modelErr: any) {
-      console.warn('gemini-3.8-flash unavailable, attempting gemini-3.1-flash-lite fallback...', modelErr?.message || modelErr);
-      response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
-        contents: prompt,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          temperature: 0.3,
-        },
-      });
-    }
+    const clientProvidedKeys = (req.headers['x-gemini-api-keys'] as string || '')
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+
+    const response = await callGeminiWithKeyRotation(async (aiClient) => {
+      let res;
+      try {
+        res = await aiClient.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json',
+            temperature: 0.3,
+          },
+        });
+      } catch (modelErr: any) {
+        console.warn('gemini-3.8-flash unavailable, attempting gemini-3.1-flash-lite fallback...', modelErr?.message || modelErr);
+        res = await aiClient.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents: prompt,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json',
+            temperature: 0.3,
+          },
+        });
+      }
+      return res;
+    }, clientProvidedKeys);
 
     const responseText = response.text?.trim() || '';
     let parsed: AIItineraryPlan;
@@ -244,10 +365,6 @@ app.post('/api/planner/refine', async (req, res) => {
       return res.status(400).json({ error: 'Missing currentPlan or userMessage' });
     }
 
-    if (!ai) {
-      return res.status(503).json({ error: 'AI service not configured on server (Missing GEMINI_API_KEY)' });
-    }
-
     const knowledgePrompt = buildKnowledgePrompt();
     const prompt = `BẠN ĐANG ĐỒNG HÀNH CHỈNH SỬA LỊCH TRÌNH CHO KHÁCH HÀNG:
 Người dùng nhắn yêu cầu điều chỉnh: "${userMessage}"
@@ -268,29 +385,37 @@ Trả về duy nhất JSON theo mẫu:
   "updatedPlan": { ...cấu trúc AIItineraryPlan hoàn chỉnh đã được cập nhật... }
 }`;
 
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          temperature: 0.3,
-        },
-      });
-    } catch (refineErr: any) {
-      console.warn('gemini-3.8-flash unavailable for refine, attempting gemini-3.1-flash-lite fallback...', refineErr?.message || refineErr);
-      response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
-        contents: prompt,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          temperature: 0.3,
-        },
-      });
-    }
+    const clientProvidedKeys = (req.headers['x-gemini-api-keys'] as string || '')
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+
+    const response = await callGeminiWithKeyRotation(async (aiClient) => {
+      let res;
+      try {
+        res = await aiClient.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json',
+            temperature: 0.3,
+          },
+        });
+      } catch (refineErr: any) {
+        console.warn('gemini-3.8-flash unavailable for refine, attempting gemini-3.1-flash-lite fallback...', refineErr?.message || refineErr);
+        res = await aiClient.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents: prompt,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json',
+            temperature: 0.3,
+          },
+        });
+      }
+      return res;
+    }, clientProvidedKeys);
 
     const responseText = response.text?.trim() || '';
     let parsed: { assistantResponse: string; updatedPlan: AIItineraryPlan };

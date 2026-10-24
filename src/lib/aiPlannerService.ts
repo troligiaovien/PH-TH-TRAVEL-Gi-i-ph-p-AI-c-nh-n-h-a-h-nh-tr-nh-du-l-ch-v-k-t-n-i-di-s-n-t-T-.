@@ -1,5 +1,5 @@
 import { doc, setDoc, getDocs, deleteDoc, collection, query, orderBy } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, getInitialGeminiConfig } from './firebase';
 import type {
   TripRequestForm,
   AIItineraryPlan,
@@ -14,9 +14,15 @@ import { VERIFIED_LOCATIONS, VERIFIED_ROUTES, getRouteLeg } from '../data/planne
  */
 export async function generateAIPlan(request: TripRequestForm): Promise<AIItineraryPlan> {
   try {
+    const config = getInitialGeminiConfig();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (config.apiKeys && config.apiKeys.length > 0) {
+      headers['x-gemini-api-keys'] = config.apiKeys.join(',');
+    }
+
     const res = await fetch('/api/planner/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(request),
     });
 
@@ -44,9 +50,15 @@ export async function refineAIPlan(
   chatHistory: PlannerChatMessage[] = []
 ): Promise<{ updatedPlan: AIItineraryPlan; assistantResponse: string }> {
   try {
+    const config = getInitialGeminiConfig();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (config.apiKeys && config.apiKeys.length > 0) {
+      headers['x-gemini-api-keys'] = config.apiKeys.join(',');
+    }
+
     const res = await fetch('/api/planner/refine', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ currentPlan, userMessage, chatHistory }),
     });
 

@@ -89,10 +89,56 @@ export const ADMIN_EMAILS: readonly string[] = [
   'viet2903edu@gmail.com'
 ];
 
+import type { RegisteredUser } from '../types';
+
 export function isUserAdmin(email?: string | null): boolean {
   if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
   return ADMIN_EMAILS.some((adm) => adm.toLowerCase() === cleanEmail);
+}
+
+/**
+ * Persist user account and accurate profile metadata into Firebase Firestore
+ */
+export async function syncUserProfile(user: User): Promise<RegisteredUser> {
+  const isAdmin = isUserAdmin(user.email);
+  const userRef = doc(db, 'users', user.uid);
+  const now = new Date().toISOString();
+
+  let createdAt = now;
+  try {
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      const existing = snap.data();
+      if (existing.createdAt) {
+        createdAt = existing.createdAt;
+      }
+    }
+  } catch (e) {
+    // Non-blocking if reading doc fails initially
+  }
+
+  const profileData: RegisteredUser = {
+    id: user.uid,
+    uid: user.uid,
+    email: user.email || '',
+    displayName: user.displayName || user.email?.split('@')[0] || 'Người dùng',
+    photoURL: user.photoURL || '',
+    role: isAdmin ? 'admin' : 'user',
+    createdAt,
+    lastLoginAt: now,
+    updatedAt: now,
+    providerId: user.providerData?.[0]?.providerId || 'google.com',
+    emailVerified: user.emailVerified
+  };
+
+  try {
+    await setDoc(userRef, profileData, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+  }
+
+  return profileData;
 }
 
 // User authentication helper
@@ -100,23 +146,102 @@ export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    const isAdmin = isUserAdmin(user.email);
-
-    // Upsert user profile
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, {
-      id: user.uid,
-      email: user.email || '',
-      displayName: user.displayName || 'Người dùng',
-      photoURL: user.photoURL || '',
-      role: isAdmin ? 'admin' : 'user',
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await syncUserProfile(user);
     return user;
   } catch (error: any) {
     console.error('Lỗi đăng nhập Google:', error);
     throw error;
   }
+}
+
+/**
+ * Fetch all registered accounts directly from Firestore
+ */
+export async function fetchRegisteredUsers(): Promise<RegisteredUser[]> {
+  try {
+    const usersCol = collection(db, 'users');
+    const snapshot = await getDocs(usersCol);
+    const users: RegisteredUser[] = [];
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      users.push({
+        id: docSnap.id,
+        uid: data.uid || docSnap.id,
+        email: data.email || 'Chưa cập nhật email',
+        displayName: data.displayName || 'Người dùng',
+        photoURL: data.photoURL || '',
+        role: data.role === 'admin' || isUserAdmin(data.email) ? 'admin' : 'user',
+        createdAt: data.createdAt || data.updatedAt || '',
+        lastLoginAt: data.lastLoginAt || data.updatedAt || '',
+        updatedAt: data.updatedAt || '',
+        providerId: data.providerId || 'google.com',
+        emailVerified: !!data.emailVerified
+      });
+    });
+
+    // Sort: Admins first, then newest login first
+    users.sort((a, b) => {
+      if (a.role === 'admin' && b.role !== 'admin') return -1;
+      if (b.role === 'admin' && a.role !== 'admin') return 1;
+      const timeA = a.lastLoginAt || a.createdAt || '';
+      const timeB = b.lastLoginAt || b.createdAt || '';
+      return timeB.localeCompare(timeA);
+    });
+
+    return users;
+  } catch (error) {
+    console.error('Lỗi tải danh sách tài khoản từ Firestore:', error);
+    handleFirestoreError(error, OperationType.LIST, 'users');
+    throw error;
+  }
+}
+
+/**
+ * Real-time listener for registered accounts in Firestore
+ */
+export function subscribeToRegisteredUsers(
+  onUsers: (users: RegisteredUser[]) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  const usersCol = collection(db, 'users');
+  return onSnapshot(
+    usersCol,
+    (snapshot) => {
+      const users: RegisteredUser[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        users.push({
+          id: docSnap.id,
+          uid: data.uid || docSnap.id,
+          email: data.email || 'Chưa cập nhật email',
+          displayName: data.displayName || 'Người dùng',
+          photoURL: data.photoURL || '',
+          role: data.role === 'admin' || isUserAdmin(data.email) ? 'admin' : 'user',
+          createdAt: data.createdAt || data.updatedAt || '',
+          lastLoginAt: data.lastLoginAt || data.updatedAt || '',
+          updatedAt: data.updatedAt || '',
+          providerId: data.providerId || 'google.com',
+          emailVerified: !!data.emailVerified
+        });
+      });
+
+      users.sort((a, b) => {
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (b.role === 'admin' && a.role !== 'admin') return 1;
+        const timeA = a.lastLoginAt || a.createdAt || '';
+        const timeB = b.lastLoginAt || b.createdAt || '';
+        return timeB.localeCompare(timeA);
+      });
+
+      onUsers(users);
+    },
+    (err) => {
+      console.warn('Lỗi lắng nghe tài khoản từ Firestore:', err);
+      handleFirestoreError(err, OperationType.LIST, 'users');
+      if (onError) onError(err);
+    }
+  );
 }
 
 export async function logoutUser() {
@@ -579,6 +704,92 @@ export function subscribeToUISettings(
     (error) => {
       handleFirestoreError(error, OperationType.GET, 'system/ui_settings');
       if (onError) onError(error);
+    }
+  );
+}
+
+import type { GeminiConfig } from '../types';
+
+export const GEMINI_CONFIG_STORAGE_KEY = 'phutho_travel_gemini_keys';
+
+export function getInitialGeminiConfig(): GeminiConfig {
+  try {
+    const cached = localStorage.getItem(GEMINI_CONFIG_STORAGE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {}
+  return { rawKeysText: '', apiKeys: [] };
+}
+
+/**
+ * Save Gemini API Keys to Cloud Firestore, local storage, and sync with backend server
+ */
+export async function saveGeminiConfig(rawKeysText: string, adminEmail?: string): Promise<GeminiConfig> {
+  const path = 'system/gemini_config';
+  // Parse lines, trim, and filter out empty or comment lines
+  const lines = rawKeysText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith('#'));
+  const uniqueKeys = Array.from(new Set(lines));
+
+  const config: GeminiConfig = {
+    rawKeysText,
+    apiKeys: uniqueKeys,
+    updatedAt: new Date().toISOString(),
+    updatedBy: adminEmail || auth.currentUser?.email || 'admin',
+  };
+
+  try {
+    localStorage.setItem(GEMINI_CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch (e) {}
+
+  try {
+    const configRef = doc(db, 'system', 'gemini_config');
+    await setDoc(configRef, config, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+
+  // Also push directly to backend server memory
+  try {
+    await fetch('/api/admin/gemini-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys: uniqueKeys, rawKeysText }),
+    });
+  } catch (serverErr) {
+    console.warn('Could not sync gemini keys directly to server memory:', serverErr);
+  }
+
+  return config;
+}
+
+/**
+ * Real-time listener for Gemini API keys
+ */
+export function subscribeToGeminiConfig(
+  onUpdate: (config: GeminiConfig) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  const configRef = doc(db, 'system', 'gemini_config');
+  return onSnapshot(
+    configRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as GeminiConfig;
+        try {
+          localStorage.setItem(GEMINI_CONFIG_STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {}
+        onUpdate(data);
+      } else {
+        onUpdate(getInitialGeminiConfig());
+      }
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.GET, 'system/gemini_config');
+      if (onError) onError(err);
     }
   );
 }

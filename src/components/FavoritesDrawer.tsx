@@ -91,28 +91,13 @@ export const FavoritesDrawer: React.FC<FavoritesDrawerProps> = ({
         <div className="p-5 overflow-y-auto flex-1 space-y-4">
           {favoriteDestinations.length > 0 ? (
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-stone-500 pb-2 border-b border-stone-100 gap-1.5">
-                {currentUser ? (
-                  <span className="flex items-center gap-1.5 text-emerald-800 font-medium">
-                    <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Đã đồng bộ Firebase Firestore ({currentUser.displayName?.split(' ')[0] || 'Tài khoản'})</span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span>Lưu tạm • </span>
-                    {onOpenAuth && (
-                      <button
-                        onClick={onOpenAuth}
-                        className="text-emerald-800 font-semibold underline hover:text-emerald-950 cursor-pointer"
-                      >
-                        Đăng nhập Google để lưu đám mây
-                      </button>
-                    )}
-                  </span>
-                )}
+              <div className="flex items-center justify-between text-xs text-stone-500 pb-2 border-b border-stone-100">
+                <span className="font-medium text-stone-600">
+                  {favoriteDestinations.length} địa điểm trong bộ sưu tập
+                </span>
                 <button
                   onClick={handleCopyList}
-                  className="font-semibold text-emerald-900 hover:underline flex items-center gap-1 cursor-pointer shrink-0 self-end sm:self-auto"
+                  className="font-semibold text-emerald-900 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Sao chép danh sách</span>
