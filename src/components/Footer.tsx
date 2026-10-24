@@ -28,12 +28,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateSection, uiSettings })
                 <img
                   src={logoUrl}
                   alt={brandTitle}
+                  loading="lazy"
+                  decoding="async"
                   style={{
-                    height: `${logoHeight}px`,
-                    transform: `scale(${logoScale}) scale(${logoScaleX}, ${logoScaleY})`,
+                    height: `${Math.round(logoHeight * logoScale * logoScaleY)}px`,
+                    transform: logoScaleX !== 1 ? `scaleX(${logoScaleX})` : undefined,
                     transformOrigin: 'left center',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
                   }}
-                  className="w-auto max-w-[280px] sm:max-w-[360px] object-contain"
+                  className="w-auto max-w-[320px] sm:max-w-[460px] object-contain"
                   onError={() => setLogoFailed(true)}
                 />
               ) : (

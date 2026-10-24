@@ -68,12 +68,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               <img
                 src={logoUrl}
                 alt={brandTitle}
+                loading="eager"
+                decoding="async"
                 style={{
-                  height: `${logoHeight}px`,
-                  transform: `scale(${logoScale}) scale(${logoScaleX}, ${logoScaleY})`,
+                  height: `${Math.round(logoHeight * logoScale * logoScaleY)}px`,
+                  transform: logoScaleX !== 1 ? `scaleX(${logoScaleX})` : undefined,
                   transformOrigin: 'left center',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
                 }}
-                className="w-auto max-w-[280px] sm:max-w-[360px] object-contain transition-transform group-hover:scale-105 duration-200"
+                className="w-auto max-w-[320px] sm:max-w-[460px] object-contain transition-all duration-200"
                 onError={() => setLogoLoadFailed(true)}
               />
             </div>

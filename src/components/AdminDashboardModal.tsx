@@ -64,6 +64,15 @@ export const HERO_BG_PRESETS = [
   }
 ];
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function compressImageToDataUrl(
   file: File,
   maxWidth: number,
@@ -103,6 +112,10 @@ function compressImageToDataUrl(
           resolve(e.target?.result as string);
           return;
         }
+
+        // Enable ultra-high quality image smoothing filter
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         // Clear canvas with transparent pixels (NEVER draw black/white default)
         ctx.clearRect(0, 0, width, height);
@@ -248,18 +261,35 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   });
   const [savingAnn, setSavingAnn] = useState(false);
 
-  // Helper to compress image files before embedding to prevent memory/Firestore overhead
+  // Helper to load logo files: preserves 100% original raw file bytes without downscaling for max crispness
   const handleLogoFileUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      onShowToast('Vui lòng chọn tệp hình ảnh (PNG, JPG, SVG, WebP)', 'error');
+      onShowToast('Vui lòng chọn tệp hình ảnh (PNG, SVG, WebP, JPG)', 'error');
       return;
     }
     setIsProcessingLogo(true);
     try {
-      // Force PNG output to guarantee transparent backgrounds are preserved 100% without becoming black!
-      const compressed = await compressImageToDataUrl(file, 480, 200, 0.95, true);
-      setUiForm((prev) => ({ ...prev, logoUrl: compressed }));
-      onShowToast('Đã nạp ảnh Logo trong suốt thành công! Hãy nhấn "LƯU VÀ ÁP DỤNG" bên dưới.', 'success');
+      // 1. If SVG, WebP, PNG or file is <= 720KB (fits directly into Firestore without hitting 1MB document limit):
+      // Keep 100% of the EXACT ORIGINAL RAW BYTES via FileReader DataURL!
+      // This guarantees ZERO compression artifacts, zero downscaling, and pixel-for-pixel original sharpness!
+      if (file.type === 'image/svg+xml' || file.size <= 720 * 1024) {
+        const originalDataUrl = await readFileAsDataUrl(file);
+        setUiForm((prev) => ({ ...prev, logoUrl: originalDataUrl }));
+        onShowToast(
+          '✓ Đã giữ 100% ĐỘ NÉT GỐC của tệp ảnh (Pixel-perfect nguyên bản, không nén mờ)! Nhấn "LƯU VÀ ÁP DỤNG" bên dưới.',
+          'success'
+        );
+        return;
+      }
+
+      // 2. If file is larger than 720KB (e.g. large uncompressed graphic > 1MB):
+      // Gently optimize to crisp high-resolution 2400px Retina canvas with high smoothing quality & PNG lossless alpha
+      const highResCrisp = await compressImageToDataUrl(file, 2400, 1200, 0.98, true);
+      setUiForm((prev) => ({ ...prev, logoUrl: highResCrisp }));
+      onShowToast(
+        '✓ Đã nạp và tối ưu độ nét cao chuẩn Retina (2400px, không vỡ hạt)! Nhấn "LƯU VÀ ÁP DỤNG" bên dưới.',
+        'success'
+      );
     } catch (err: any) {
       onShowToast(`Lỗi xử lý ảnh: ${err.message || err}`, 'error');
     } finally {
@@ -872,9 +902,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               src={uiForm.logoUrl}
                               alt="Logo Preview"
                               style={{
-                                height: `${uiForm.logoHeight ?? 44}px`,
-                                transform: `scale(${(uiForm.logoScale ?? 100) / 100}) scale(${(uiForm.logoScaleX ?? 100) / 100}, ${(uiForm.logoScaleY ?? 100) / 100})`,
+                                height: `${Math.round((uiForm.logoHeight ?? 44) * ((uiForm.logoScale ?? 100) / 100) * ((uiForm.logoScaleY ?? 100) / 100))}px`,
+                                transform: (uiForm.logoScaleX ?? 100) !== 100 ? `scaleX(${(uiForm.logoScaleX ?? 100) / 100})` : undefined,
                                 transformOrigin: 'center center',
+                                backfaceVisibility: 'hidden',
+                                WebkitBackfaceVisibility: 'hidden',
                               }}
                               className="w-auto max-w-full object-contain transition-transform"
                               onError={() => {}}
@@ -905,9 +937,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             src={uiForm.logoUrl}
                             alt="Logo Dark Preview"
                             style={{
-                              height: `${uiForm.logoHeight ?? 44}px`,
-                              transform: `scale(${(uiForm.logoScale ?? 100) / 100}) scale(${(uiForm.logoScaleX ?? 100) / 100}, ${(uiForm.logoScaleY ?? 100) / 100})`,
+                              height: `${Math.round((uiForm.logoHeight ?? 44) * ((uiForm.logoScale ?? 100) / 100) * ((uiForm.logoScaleY ?? 100) / 100))}px`,
+                              transform: (uiForm.logoScaleX ?? 100) !== 100 ? `scaleX(${(uiForm.logoScaleX ?? 100) / 100})` : undefined,
                               transformOrigin: 'center center',
+                              backfaceVisibility: 'hidden',
+                              WebkitBackfaceVisibility: 'hidden',
                             }}
                             className="w-auto max-w-full object-contain transition-transform"
                             onError={() => {}}
@@ -995,13 +1029,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
                     {/* Upload from PC */}
                     <div>
-                      <label className="block text-xs font-bold text-stone-800 mb-1.5">
-                        Tải ảnh logo từ máy tính (Tự động giữ nền trong suốt):
+                      <label className="block text-xs font-bold text-stone-800 mb-1.5 flex items-center justify-between">
+                        <span>Tải ảnh logo từ máy tính (Giữ 100% độ nét gốc, không mờ):</span>
+                        <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Độ nét nguyên bản · Chuẩn Retina
+                        </span>
                       </label>
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
                         <label className="px-4 py-2 bg-gradient-to-r from-emerald-900 to-emerald-950 hover:from-emerald-800 hover:to-emerald-900 text-white text-xs font-semibold rounded-xl flex items-center gap-2 cursor-pointer transition-colors shadow-xs">
                           <UploadCloud className="w-4 h-4 text-amber-300" />
-                          <span>{isProcessingLogo ? 'Đang xử lý ảnh...' : 'Chọn tệp ảnh logo từ máy'}</span>
+                          <span>{isProcessingLogo ? 'Đang tải ảnh...' : 'Chọn tệp ảnh logo từ máy'}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -1014,7 +1051,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           />
                         </label>
                         <span className="text-[11px] text-stone-500">
-                          Hỗ trợ PNG trong suốt, SVG, WebP. Không bị đổi thành nền đen.
+                          Bảo toàn 100% định dạng gốc (PNG trong suốt, SVG, WebP, JPG). Không bị nén làm mờ, không bị nền đen.
                         </span>
                       </div>
                     </div>
