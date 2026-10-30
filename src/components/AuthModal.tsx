@@ -30,6 +30,7 @@ interface AuthModalProps {
   onShowToast: (message: string, type?: 'success' | 'info' | 'error') => void;
   favoritesCount: number;
   onOpenAdmin?: () => void;
+  lockNotice?: string | null;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -38,7 +39,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   currentUser,
   onShowToast,
   favoritesCount,
-  onOpenAdmin
+  onOpenAdmin,
+  lockNotice
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -287,6 +289,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             /* Guest / Login View */
             <div className="space-y-4">
+              {/* Feature Lock Notice Banner */}
+              <div className="p-3 bg-amber-500/10 border border-amber-400/50 rounded-xl flex items-start gap-2.5 text-xs text-amber-950">
+                <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="leading-snug">
+                  <strong className="block font-bold text-amber-900 mb-0.5">
+                    {lockNotice ? 'Tính năng đang bị khóa' : 'Yêu cầu đăng nhập tài khoản:'}
+                  </strong>
+                  <span className="text-stone-700">
+                    {lockNotice || 'Các tính năng (Xem chi tiết, Bản đồ GPS, AI Lịch trình, Yêu thích...) cần đăng nhập tài khoản để mở khóa sử dụng và đồng bộ dữ liệu.'}
+                  </span>
+                </div>
+              </div>
+
               {/* Auth Method Tabs */}
               <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold">
                 <button

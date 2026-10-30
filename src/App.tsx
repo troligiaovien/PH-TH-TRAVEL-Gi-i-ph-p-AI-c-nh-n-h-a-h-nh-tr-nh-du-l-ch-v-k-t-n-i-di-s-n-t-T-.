@@ -50,6 +50,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<MainTabType>('destinations');
   const [plannerInitialPrompt, setPlannerInitialPrompt] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [authNoticeMessage, setAuthNoticeMessage] = useState<string | null>(null);
 
   // Admin, System & UI Appearance state
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
@@ -122,6 +123,19 @@ export default function App() {
     dest: Destination,
     tab: 'overview' | 'gallery' | 'activities' | 'location' = 'overview'
   ) => {
+    if (!currentUser) {
+      const tabLabels: Record<string, string> = {
+        overview: 'Xem chi tiết',
+        gallery: 'Bộ sưu tập ảnh',
+        location: 'Bản đồ định vị & Chỉ đường',
+        activities: 'Trải nghiệm & Hoạt động',
+      };
+      const label = tabLabels[tab] || 'Xem chi tiết điểm đến';
+      setAuthNoticeMessage(`Tính năng "${label}" của "${dest.name}" đã bị khóa. Vui lòng đăng nhập để mở khóa xem đầy đủ thông tin.`);
+      addToast(`🔒 Tính năng "${label}" đã bị khóa! Vui lòng đăng nhập để tiếp tục.`, 'error');
+      setIsAuthModalOpen(true);
+      return;
+    }
     setSelectedDestination(dest);
     setModalInitialTab(tab);
   };
@@ -202,20 +216,22 @@ export default function App() {
   };
 
   const handleToggleFavorite = (id: string) => {
+    if (!currentUser) {
+      setAuthNoticeMessage('Tính năng Lưu điểm đến yêu thích đã bị khóa. Vui lòng đăng nhập để lưu trữ và đồng bộ đám mây.');
+      addToast('🔒 Tính năng Lưu điểm đến yêu thích đã bị khóa! Vui lòng đăng nhập để lưu trữ.', 'error');
+      setIsAuthModalOpen(true);
+      return;
+    }
     setFavorites((prev) => {
       const exists = prev.includes(id);
       const dest = destinations.find((d) => d.id === id);
       if (exists) {
-        if (currentUser) {
-          removeFavoriteFromCloud(currentUser.uid, id).catch(console.error);
-        }
+        removeFavoriteFromCloud(currentUser.uid, id).catch(console.error);
         addToast(`Đã bỏ "${dest?.name || id}" khỏi danh sách yêu thích`, 'info');
         return prev.filter((item) => item !== id);
       } else {
-        if (currentUser) {
-          saveFavoriteToCloud(currentUser.uid, id, dest?.name || id).catch(console.error);
-        }
-        addToast(`Đã lưu "${dest?.name || id}" vào danh sách yêu thích${currentUser ? ' (Đã đồng bộ Cloud)' : ''}`, 'success');
+        saveFavoriteToCloud(currentUser.uid, id, dest?.name || id).catch(console.error);
+        addToast(`Đã lưu "${dest?.name || id}" vào danh sách yêu thích (Đã đồng bộ Cloud)`, 'success');
         return [...prev, id];
       }
     });
@@ -231,6 +247,18 @@ export default function App() {
   };
 
   const handleTabChange = (tab: MainTabType) => {
+    if (!currentUser && tab !== 'destinations') {
+      const tabNames: Record<string, string> = {
+        map: 'Bản đồ số & Chỉ đường GPS',
+        itineraries: 'AI Kiến tạo Lịch trình',
+        guide: 'Cẩm nang & Dự án du lịch'
+      };
+      const label = tabNames[tab] || tab;
+      setAuthNoticeMessage(`Tính năng "${label}" đã bị khóa. Vui lòng đăng nhập để mở khóa sử dụng.`);
+      addToast(`🔒 Tính năng "${label}" đã bị khóa! Vui lòng đăng nhập để sử dụng.`, 'error');
+      setIsAuthModalOpen(true);
+      return;
+    }
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -300,35 +328,15 @@ export default function App() {
         uiSettings={uiSettings}
       />
 
-      {/* Main Content Area: Enforces Authentication Lock Gate */}
+      {/* Main Content Area: Always renders full UI like when logged in */}
       <main className="flex-1">
-        {authLoading ? (
-          <div className="min-h-[70vh] flex flex-col items-center justify-center p-8 bg-stone-900 text-stone-100">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-900 to-stone-950 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-2xl font-serif font-black shadow-xl animate-pulse">
-              PT
-            </div>
-            <div className="mt-4 flex items-center gap-2.5 text-xs sm:text-sm text-stone-300 font-medium">
-              <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-              <span>Đang kiểm tra trạng thái xác thực hệ thống...</span>
-            </div>
-          </div>
-        ) : !currentUser ? (
-          /* Authentication Lock Screen - Locks all features and destination info */
-          <LoginLockGate
-            onOpenAuthModal={() => setIsAuthModalOpen(true)}
-            onShowToast={addToast}
-            uiSettings={uiSettings}
-          />
-        ) : (
-          /* Full Application Unlocked When Authenticated */
-          <>
-            {/* Compact Hero Banner */}
-            <HeroSection
-              destinations={destinations}
-              onSelectDestination={(dest) => setSelectedDestination(dest)}
-              onOpenDigitalMap={() => handleTabChange('map')}
-              uiSettings={uiSettings}
-            />
+        {/* Compact Hero Banner */}
+        <HeroSection
+          destinations={destinations}
+          onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
+          onOpenDigitalMap={() => handleTabChange('map')}
+          uiSettings={uiSettings}
+        />
 
             {/* Elevated View Tabs Switcher Bar */}
             <div className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-16 z-30 shadow-xs">
@@ -430,6 +438,7 @@ export default function App() {
                 isAdmin={isAdmin}
                 onEditDestination={(dest) => setEditingDestination(dest)}
                 onAddNewDestination={() => setEditingDestination('new')}
+                currentUser={currentUser}
               />
             )}
 
@@ -467,8 +476,6 @@ export default function App() {
                 }}
               />
             )}
-          </>
-        )}
       </main>
 
       {/* Footer */}
@@ -525,11 +532,15 @@ export default function App() {
       {/* Google Auth & Firebase Cloud Sync Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setAuthNoticeMessage(null);
+        }}
         currentUser={currentUser}
         onShowToast={addToast}
         favoritesCount={favorites.length}
         onOpenAdmin={() => setIsAdminDashboardOpen(true)}
+        lockNotice={authNoticeMessage}
       />
 
       {/* Admin Dashboard Modal */}

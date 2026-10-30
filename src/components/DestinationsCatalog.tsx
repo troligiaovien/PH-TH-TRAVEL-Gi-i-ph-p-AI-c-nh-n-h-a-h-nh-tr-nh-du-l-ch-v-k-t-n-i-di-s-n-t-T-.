@@ -15,6 +15,8 @@ import { Destination } from '../types';
 import { CATEGORIES_FILTER_LIST } from '../data/destinations';
 import { SwipeablePhotoShowcase } from './SwipeablePhotoShowcase';
 
+import type { User } from 'firebase/auth';
+
 interface DestinationsCatalogProps {
   destinations: Destination[];
   favorites: string[];
@@ -23,6 +25,7 @@ interface DestinationsCatalogProps {
   isAdmin?: boolean;
   onEditDestination?: (dest: Destination) => void;
   onAddNewDestination?: () => void;
+  currentUser?: User | null;
 }
 
 export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
@@ -33,6 +36,7 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
   isAdmin = false,
   onEditDestination,
   onAddNewDestination,
+  currentUser,
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
@@ -107,7 +111,10 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
               >
                 <div>
                   {/* Card Visual Banner WITH REAL COVER PHOTO */}
-                  <div className="relative aspect-[16/10] bg-stone-900 overflow-hidden flex flex-col justify-between text-white p-5">
+                  <div
+                    onClick={() => onSelectDestination(dest, 'overview')}
+                    className="relative aspect-[16/10] bg-stone-900 overflow-hidden flex flex-col justify-between text-white p-5 cursor-pointer"
+                  >
                     {dest.coverImage ? (
                       <img
                         src={dest.coverImage}
@@ -135,7 +142,10 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
                       </span>
 
                       <button
-                        onClick={() => onToggleFavorite(dest.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFavorite(dest.id);
+                        }}
                         className={`interactive-btn p-2 rounded-full transition-all cursor-pointer ${
                           isFavorite
                             ? 'bg-amber-500 text-stone-950 shadow-md ring-2 ring-amber-300/60'
@@ -158,7 +168,10 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
                       </div>
                       {hasGallery && (
                         <button
-                          onClick={() => onSelectDestination(dest, 'gallery')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectDestination(dest, 'gallery');
+                          }}
                           className="px-2.5 py-1 rounded-full bg-stone-950/80 backdrop-blur-xs text-amber-300 font-semibold border border-amber-300/40 hover:bg-amber-400 hover:text-stone-900 transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
                         >
                           <Camera className="w-3 h-3" />
@@ -178,7 +191,10 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-lg font-serif font-bold text-stone-900 group-hover:text-emerald-900 transition-colors">
+                    <h3
+                      onClick={() => onSelectDestination(dest, 'overview')}
+                      className="text-lg font-serif font-bold text-stone-900 group-hover:text-emerald-900 transition-colors cursor-pointer"
+                    >
                       {dest.name}
                     </h3>
 
@@ -254,21 +270,33 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
 
                   <div className="flex items-center gap-1.5">
                     <a
-                      href={dest.googleMapsUrl}
-                      target="_blank"
+                      href={currentUser ? dest.googleMapsUrl : '#'}
+                      onClick={(e) => {
+                        if (!currentUser) {
+                          e.preventDefault();
+                          onSelectDestination(dest, 'location');
+                        }
+                      }}
+                      target={currentUser ? "_blank" : undefined}
                       rel="noopener noreferrer"
-                      className="px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:text-emerald-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors inline-flex items-center gap-1"
-                      title="Mở Google Maps"
+                      className="px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:text-emerald-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      title={currentUser ? "Mở Google Maps" : "Đăng nhập để xem bản đồ chỉ đường"}
                     >
                       <ExternalLink className="w-3.5 h-3.5 text-stone-500" />
                       <span className="hidden sm:inline">Maps</span>
                     </a>
                     <a
-                      href={dest.googleEarthUrl}
-                      target="_blank"
+                      href={currentUser ? dest.googleEarthUrl : '#'}
+                      onClick={(e) => {
+                        if (!currentUser) {
+                          e.preventDefault();
+                          onSelectDestination(dest, 'location');
+                        }
+                      }}
+                      target={currentUser ? "_blank" : undefined}
                       rel="noopener noreferrer"
-                      className="px-2.5 py-1.5 text-xs font-medium text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1"
-                      title="Xem 3D trên Google Earth"
+                      className="px-2.5 py-1.5 text-xs font-medium text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      title={currentUser ? "Xem 3D trên Google Earth" : "Đăng nhập để xem 3D Google Earth"}
                     >
                       <Globe className="w-3.5 h-3.5 text-emerald-700" />
                       <span className="hidden sm:inline">3D</span>
