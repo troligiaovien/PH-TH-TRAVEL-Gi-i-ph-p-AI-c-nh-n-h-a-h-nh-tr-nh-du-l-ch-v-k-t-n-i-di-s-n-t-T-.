@@ -33,10 +33,11 @@ import { ToastContainer, ToastMessage } from './components/Toast';
 import { AnnouncementBanner } from './components/AnnouncementBanner';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { DestinationEditModal } from './components/DestinationEditModal';
+import { LoginLockGate } from './components/LoginLockGate';
 
 import { DESTINATIONS_DATA } from './data/destinations';
 import { Destination, AppAnnouncement, AppUISettings } from './types';
-import { Compass, MapPin, Calendar, BookOpen, Shield, Sparkles, ExternalLink } from 'lucide-react';
+import { Compass, MapPin, Calendar, BookOpen, Shield, Sparkles, ExternalLink, Lock } from 'lucide-react';
 
 export default function App() {
   const [destinations, setDestinations] = useState<Destination[]>(() => getCachedDestinations());
@@ -45,6 +46,7 @@ export default function App() {
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<MainTabType>('destinations');
   const [plannerInitialPrompt, setPlannerInitialPrompt] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -61,6 +63,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setAuthLoading(false);
       if (user) {
         // Sync full profile directly to Firestore 'users' collection
         syncUserProfile(user).catch((e) => console.warn('Sync profile error:', e));
@@ -297,191 +300,227 @@ export default function App() {
         uiSettings={uiSettings}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area: Enforces Authentication Lock Gate */}
       <main className="flex-1">
-        {/* Compact Hero Banner */}
-        <HeroSection
-          destinations={destinations}
-          onSelectDestination={(dest) => setSelectedDestination(dest)}
-          onOpenDigitalMap={() => handleTabChange('map')}
-          uiSettings={uiSettings}
-        />
-
-        {/* Elevated View Tabs Switcher Bar */}
-        <div className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-16 z-30 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between overflow-x-auto gap-4">
-            <div className="flex items-center gap-1.5 p-1 bg-stone-100/90 rounded-2xl border border-stone-200/60 shrink-0">
-              <button
-                onClick={() => handleTabChange('destinations')}
-                data-cursor="Điểm đến"
-                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'destinations'
-                    ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                    : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                }`}
-              >
-                <Compass className={`w-3.5 h-3.5 ${activeTab === 'destinations' ? 'text-amber-400' : 'text-stone-500'}`} />
-                <span>{destinations.length} Điểm đến</span>
-              </button>
-
-              <button
-                onClick={() => handleTabChange('map')}
-                data-cursor="Bản đồ"
-                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'map'
-                    ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                    : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                }`}
-              >
-                <MapPin className={`w-3.5 h-3.5 ${activeTab === 'map' ? 'text-amber-400' : 'text-stone-500'}`} />
-                <span>Bản đồ số & Chỉ đường</span>
-              </button>
-
-              <button
-                onClick={() => handleTabChange('itineraries')}
-                data-cursor="AI Lịch trình"
-                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'itineraries'
-                    ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                    : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                <span>AI Kiến tạo Lịch trình</span>
-              </button>
-
-              <button
-                onClick={() => handleTabChange('guide')}
-                data-cursor="Cẩm nang"
-                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'guide'
-                    ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                    : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                }`}
-              >
-                <BookOpen className={`w-3.5 h-3.5 ${activeTab === 'guide' ? 'text-amber-400' : 'text-stone-500'}`} />
-                <span>Cẩm nang & Dự án</span>
-              </button>
-
-              {/* NGẮM PHÚ THỌ QUA 360 Link */}
-              <a
-                href="https://dulichphutho.com.vn/vi/explore360"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-cursor="360°"
-                className="interactive-btn px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-400/25 via-amber-300/35 to-amber-400/25 hover:from-amber-400/45 hover:to-amber-300/50 text-amber-950 border border-amber-400/80 group shadow-2xs ml-0.5"
-                title="Khám phá toàn cảnh 360 độ du lịch Phú Thọ"
-              >
-                <Compass className="w-3.5 h-3.5 text-amber-800 group-hover:rotate-90 transition-transform duration-500" />
-                <span>NGẮM PHÚ THỌ QUA 360°</span>
-                <span className="text-[9px] bg-amber-400 text-stone-950 font-black px-1.5 py-0.2 rounded-full">VR</span>
-                <ExternalLink className="w-3 h-3 text-amber-900/80 group-hover:text-amber-950" />
-              </a>
+        {authLoading ? (
+          <div className="min-h-[70vh] flex flex-col items-center justify-center p-8 bg-stone-900 text-stone-100">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-900 to-stone-950 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-2xl font-serif font-black shadow-xl animate-pulse">
+              PT
             </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              {isAdmin && (
-                <button
-                  onClick={() => setIsAdminDashboardOpen(true)}
-                  className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer border border-amber-300 transition-colors shadow-2xs"
-                >
-                  <Shield className="w-3 h-3 text-amber-800" />
-                  <span>Admin ({currentUser?.email?.split('@')[0]})</span>
-                </button>
-              )}
-              <div className="text-[11px] text-stone-500 hidden lg:inline-flex items-center gap-1.5 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block" />
-                <span>Giao diện tinh gọn · Trải nghiệm trực quan</span>
-              </div>
+            <div className="mt-4 flex items-center gap-2.5 text-xs sm:text-sm text-stone-300 font-medium">
+              <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+              <span>Đang kiểm tra trạng thái xác thực hệ thống...</span>
             </div>
           </div>
-        </div>
-
-        {/* View 1: Destination Cards Catalog */}
-        {activeTab === 'destinations' && (
-          <DestinationsCatalog
-            destinations={destinations}
-            favorites={favorites}
-            onToggleFavorite={handleToggleFavorite}
-            onSelectDestination={handleOpenDestination}
-            isAdmin={isAdmin}
-            onEditDestination={(dest) => setEditingDestination(dest)}
-            onAddNewDestination={() => setEditingDestination('new')}
-          />
-        )}
-
-        {/* View 2: Interactive Digital Map & Route Guidance */}
-        {activeTab === 'map' && (
-          <InteractiveDigitalMap
-            destinations={destinations}
-            onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
-            onOpenEarth={() => {}}
-          />
-        )}
-
-        {/* View 3: Suggested Itineraries & AI Travel Planner */}
-        {activeTab === 'itineraries' && (
-          <ItinerariesSection
-            destinations={destinations}
-            currentUser={currentUser}
-            onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
+        ) : !currentUser ? (
+          /* Authentication Lock Screen - Locks all features and destination info */
+          <LoginLockGate
+            onOpenAuthModal={() => setIsAuthModalOpen(true)}
             onShowToast={addToast}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-            initialPrompt={plannerInitialPrompt}
+            uiSettings={uiSettings}
           />
-        )}
+        ) : (
+          /* Full Application Unlocked When Authenticated */
+          <>
+            {/* Compact Hero Banner */}
+            <HeroSection
+              destinations={destinations}
+              onSelectDestination={(dest) => setSelectedDestination(dest)}
+              onOpenDigitalMap={() => handleTabChange('map')}
+              uiSettings={uiSettings}
+            />
 
-        {/* View 4: Concise Travel Handbook & Project Profile */}
-        {activeTab === 'guide' && (
-          <GuideAndProjectSection
-            destinations={destinations}
-            onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
-            onNavigateToTab={(tab) => handleTabChange(tab)}
-            onShowToast={addToast}
-            onTriggerAiPlannerWithPrompt={(prompt) => {
-              setPlannerInitialPrompt(prompt);
-              handleTabChange('itineraries');
-            }}
-          />
+            {/* Elevated View Tabs Switcher Bar */}
+            <div className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-16 z-30 shadow-xs">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between overflow-x-auto gap-4">
+                <div className="flex items-center gap-1.5 p-1 bg-stone-100/90 rounded-2xl border border-stone-200/60 shrink-0">
+                  <button
+                    onClick={() => handleTabChange('destinations')}
+                    data-cursor="Điểm đến"
+                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === 'destinations'
+                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
+                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <Compass className={`w-3.5 h-3.5 ${activeTab === 'destinations' ? 'text-amber-400' : 'text-stone-500'}`} />
+                    <span>{destinations.length} Điểm đến</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTabChange('map')}
+                    data-cursor="Bản đồ"
+                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === 'map'
+                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
+                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <MapPin className={`w-3.5 h-3.5 ${activeTab === 'map' ? 'text-amber-400' : 'text-stone-500'}`} />
+                    <span>Bản đồ số & Chỉ đường</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTabChange('itineraries')}
+                    data-cursor="AI Lịch trình"
+                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === 'itineraries'
+                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
+                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                    <span>AI Kiến tạo Lịch trình</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTabChange('guide')}
+                    data-cursor="Cẩm nang"
+                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === 'guide'
+                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
+                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <BookOpen className={`w-3.5 h-3.5 ${activeTab === 'guide' ? 'text-amber-400' : 'text-stone-500'}`} />
+                    <span>Cẩm nang & Dự án</span>
+                  </button>
+
+                  {/* NGẮM PHÚ THỌ QUA 360 Link */}
+                  <a
+                    href="https://dulichphutho.com.vn/vi/explore360"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cursor="360°"
+                    className="interactive-btn px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-400/25 via-amber-300/35 to-amber-400/25 hover:from-amber-400/45 hover:to-amber-300/50 text-amber-950 border border-amber-400/80 group shadow-2xs ml-0.5"
+                    title="Khám phá toàn cảnh 360 độ du lịch Phú Thọ"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-amber-800 group-hover:rotate-90 transition-transform duration-500" />
+                    <span>NGẮM PHÚ THỌ QUA 360°</span>
+                    <span className="text-[9px] bg-amber-400 text-stone-950 font-black px-1.5 py-0.2 rounded-full">VR</span>
+                    <ExternalLink className="w-3 h-3 text-amber-900/80 group-hover:text-amber-950" />
+                  </a>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsAdminDashboardOpen(true)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer border border-amber-300 transition-colors shadow-2xs"
+                    >
+                      <Shield className="w-3 h-3 text-amber-800" />
+                      <span>Admin ({currentUser?.email?.split('@')[0]})</span>
+                    </button>
+                  )}
+                  <div className="text-[11px] text-stone-500 hidden lg:inline-flex items-center gap-1.5 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block" />
+                    <span>Giao diện tinh gọn · Trải nghiệm trực quan</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* View 1: Destination Cards Catalog */}
+            {activeTab === 'destinations' && (
+              <DestinationsCatalog
+                destinations={destinations}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
+                onSelectDestination={handleOpenDestination}
+                isAdmin={isAdmin}
+                onEditDestination={(dest) => setEditingDestination(dest)}
+                onAddNewDestination={() => setEditingDestination('new')}
+              />
+            )}
+
+            {/* View 2: Interactive Digital Map & Route Guidance */}
+            {activeTab === 'map' && (
+              <InteractiveDigitalMap
+                destinations={destinations}
+                onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
+                onOpenEarth={() => {}}
+              />
+            )}
+
+            {/* View 3: Suggested Itineraries & AI Travel Planner */}
+            {activeTab === 'itineraries' && (
+              <ItinerariesSection
+                destinations={destinations}
+                currentUser={currentUser}
+                onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
+                onShowToast={addToast}
+                onOpenAuth={() => setIsAuthModalOpen(true)}
+                initialPrompt={plannerInitialPrompt}
+              />
+            )}
+
+            {/* View 4: Concise Travel Handbook & Project Profile */}
+            {activeTab === 'guide' && (
+              <GuideAndProjectSection
+                destinations={destinations}
+                onSelectDestination={(dest) => handleOpenDestination(dest, 'overview')}
+                onNavigateToTab={(tab) => handleTabChange(tab)}
+                onShowToast={addToast}
+                onTriggerAiPlannerWithPrompt={(prompt) => {
+                  setPlannerInitialPrompt(prompt);
+                  handleTabChange('itineraries');
+                }}
+              />
+            )}
+          </>
         )}
       </main>
 
       {/* Footer */}
-      <Footer onNavigateSection={(tabId) => handleTabChange(tabId as any)} uiSettings={uiSettings} />
-
-      {/* Destination Detail Modal */}
-      <DestinationDetailModal
-        destination={selectedDestination}
-        allDestinations={destinations}
-        initialTab={modalInitialTab}
-        isFavorite={selectedDestination ? favorites.includes(selectedDestination.id) : false}
-        onToggleFavorite={handleToggleFavorite}
-        onClose={() => setSelectedDestination(null)}
-        onSelectRelated={(dest) => handleOpenDestination(dest, 'overview')}
-        onShowToast={addToast}
-        isAdmin={isAdmin}
-        onEditDestination={(dest) => {
-          setSelectedDestination(null);
-          setEditingDestination(dest);
+      <Footer
+        onNavigateSection={(tabId) => {
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+            addToast('Vui lòng đăng nhập để truy cập tính năng', 'info');
+            return;
+          }
+          handleTabChange(tabId as any);
         }}
+        uiSettings={uiSettings}
       />
 
-      {/* Bookmarked Favorites Drawer */}
-      <FavoritesDrawer
-        isOpen={isFavoritesOpen}
-        onClose={() => setIsFavoritesOpen(false)}
-        favoriteIds={favorites}
-        destinations={destinations}
-        onRemoveFavorite={handleToggleFavorite}
-        onClearAll={handleClearFavorites}
-        onSelectDestination={(dest) => setSelectedDestination(dest)}
-        onShowToast={addToast}
-        currentUser={currentUser}
-        onOpenAuth={() => {
-          setIsFavoritesOpen(false);
-          setIsAuthModalOpen(true);
-        }}
-      />
+      {/* Destination Detail Modal - Only visible when logged in */}
+      {currentUser && (
+        <DestinationDetailModal
+          destination={selectedDestination}
+          allDestinations={destinations}
+          initialTab={modalInitialTab}
+          isFavorite={selectedDestination ? favorites.includes(selectedDestination.id) : false}
+          onToggleFavorite={handleToggleFavorite}
+          onClose={() => setSelectedDestination(null)}
+          onSelectRelated={(dest) => handleOpenDestination(dest, 'overview')}
+          onShowToast={addToast}
+          isAdmin={isAdmin}
+          onEditDestination={(dest) => {
+            setSelectedDestination(null);
+            setEditingDestination(dest);
+          }}
+        />
+      )}
+
+      {/* Bookmarked Favorites Drawer - Only visible when logged in */}
+      {currentUser && (
+        <FavoritesDrawer
+          isOpen={isFavoritesOpen}
+          onClose={() => setIsFavoritesOpen(false)}
+          favoriteIds={favorites}
+          destinations={destinations}
+          onRemoveFavorite={handleToggleFavorite}
+          onClearAll={handleClearFavorites}
+          onSelectDestination={(dest) => setSelectedDestination(dest)}
+          onShowToast={addToast}
+          currentUser={currentUser}
+          onOpenAuth={() => {
+            setIsFavoritesOpen(false);
+            setIsAuthModalOpen(true);
+          }}
+        />
+      )}
 
       {/* Google Auth & Firebase Cloud Sync Modal */}
       <AuthModal
