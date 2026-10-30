@@ -49,17 +49,20 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
     <div className="py-8 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header & Clean Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-stone-200 mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-stone-200/80 mb-8 gap-4">
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 tracking-tight">
                 {destinations.length} ĐIỂM ĐẾN TIÊU BIỂU
               </h2>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
+                Di sản & Danh thắng
+              </span>
               {isAdmin && onAddNewDestination && (
                 <button
                   type="button"
                   onClick={onAddNewDestination}
-                  className="px-3 py-1 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 text-xs font-bold rounded-lg inline-flex items-center gap-1 shadow-xs cursor-pointer border border-amber-300 transition-all"
+                  className="px-3 py-1 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 text-xs font-bold rounded-lg inline-flex items-center gap-1.5 shadow-xs cursor-pointer border border-amber-300 transition-all"
                   title="Thêm điểm di tích mới (Admin)"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -73,15 +76,15 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
           </div>
 
           {/* Clean Segmented Category Filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 p-1 bg-stone-200/60 rounded-xl border border-stone-200/70 overflow-x-auto pb-1 sm:pb-1">
             {CATEGORIES_FILTER_LIST.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                   activeCategory === cat.id
-                    ? 'bg-emerald-900 text-white shadow-xs'
-                    : 'bg-white text-stone-600 hover:bg-stone-200/80 border border-stone-200'
+                    ? 'bg-emerald-950 text-white shadow-xs ring-1 ring-emerald-900/30'
+                    : 'text-stone-700 hover:text-stone-950 hover:bg-white/80'
                 }`}
               >
                 {cat.label}
@@ -279,27 +282,27 @@ export const DestinationsCatalog: React.FC<DestinationsCatalogProps> = ({
 
         {/* 1-SCREEN SWIPEABLE PHOTO SHOWCASE SECTION FOR ĐỀN HÙNG */}
         {denHungDest && denHungDest.gallery && denHungDest.gallery.length > 0 && (
-          <div className="mt-14 pt-10 border-t border-stone-200" id="den-hung-photo-showcase">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+          <div className="mt-16 bg-gradient-to-b from-stone-100/80 via-stone-50 to-stone-100/60 border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-xs" id="den-hung-photo-showcase">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-semibold mb-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold mb-2.5 border border-emerald-200">
                   <Camera className="w-3.5 h-3.5 text-emerald-800" />
                   <span>Trải nghiệm ảnh 1 màn hình</span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">
+                <h3 className="text-xl sm:text-2xl font-serif font-black text-stone-900 tracking-tight">
                   LƯỚT NGẮM CẢNH SẮC KHU DI TÍCH LỊCH SỬ ĐỀN HÙNG
                 </h3>
-                <p className="text-xs sm:text-sm text-stone-600 mt-1">
-                  Chạm vuốt lướt ngón tay trên màn hình hoặc dùng chuột kéo/bấm phím mũi tên để chuyển qua từng góc ảnh linh thiêng.
+                <p className="text-xs sm:text-sm text-stone-600 mt-1.5 leading-relaxed max-w-2xl">
+                  Chạm vuốt lướt ngón tay trên màn hình điện thoại hoặc dùng chuột kéo/bấm phím mũi tên để chuyển qua từng góc ảnh linh thiêng.
                 </p>
               </div>
 
               <button
                 onClick={() => onSelectDestination(denHungDest, 'gallery')}
-                className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold self-start sm:self-auto cursor-pointer shadow-xs inline-flex items-center gap-1.5 transition-colors"
+                className="interactive-btn px-4 py-2.5 bg-gradient-to-r from-emerald-900 to-emerald-950 hover:from-emerald-800 hover:to-emerald-900 text-amber-300 rounded-xl text-xs font-bold self-start sm:self-auto cursor-pointer shadow-xs inline-flex items-center gap-2 transition-all border border-emerald-800 shrink-0"
               >
                 <span>Mở thư viện ảnh đầy đủ ({denHungDest.gallery.length} ảnh)</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 text-amber-300" />
               </button>
             </div>
 

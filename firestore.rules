@@ -31,10 +31,9 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // User profiles and personal subcollections
+    // User profiles and personal subcollections - allow public read so community profiles, reviews, and admin user list can display smoothly
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow read: if true;
       allow write: if isOwner(userId) || isAdmin();
 
       match /favorites/{favoriteId} {
@@ -55,6 +54,24 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
       }
+    }
+
+    // Flexible aliases for places, diem_den, tours, reviews
+    match /places/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /diem_den/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /tours/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /reviews/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // System configurations & announcements - readable by all, writable by admins only

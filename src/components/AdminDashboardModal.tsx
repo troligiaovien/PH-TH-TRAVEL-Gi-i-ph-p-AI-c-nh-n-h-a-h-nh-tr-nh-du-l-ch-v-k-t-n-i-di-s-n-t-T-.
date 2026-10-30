@@ -52,6 +52,7 @@ import {
   saveAppUISettings,
   subscribeToRegisteredUsers,
   fetchRegisteredUsers,
+  addOrSyncRegisteredUser,
   getInitialGeminiConfig,
   saveGeminiConfig,
   subscribeToGeminiConfig
@@ -344,6 +345,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
+  const [newUid, setNewUid] = useState('');
+  const [isAddingUser, setIsAddingUser] = useState(false);
 
   // Real-time synchronization of registered accounts from Firebase Firestore
   React.useEffect(() => {
@@ -372,6 +379,43 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       onShowToast(`Lỗi lấy dữ liệu tài khoản: ${err.message || err}`, 'error');
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const handleAddUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail.trim()) {
+      onShowToast('Vui lòng nhập địa chỉ email.', 'error');
+      return;
+    }
+    setIsAddingUser(true);
+    try {
+      const added = await addOrSyncRegisteredUser({
+        email: newEmail.trim(),
+        displayName: newName.trim() || undefined,
+        role: newRole,
+        uid: newUid.trim() || undefined
+      });
+      setRegisteredUsers((prev) => {
+        const idx = prev.findIndex(
+          (u) => u.uid === added.uid || u.email.toLowerCase() === added.email.toLowerCase()
+        );
+        if (idx >= 0) {
+          const upd = [...prev];
+          upd[idx] = added;
+          return upd;
+        }
+        return [added, ...prev];
+      });
+      onShowToast(`Đã đồng bộ tài khoản "${added.email}" thành công!`, 'success');
+      setNewEmail('');
+      setNewName('');
+      setNewUid('');
+      setIsAddUserOpen(false);
+    } catch (err: any) {
+      onShowToast(`Lỗi thêm tài khoản: ${err.message || err}`, 'error');
+    } finally {
+      setIsAddingUser(false);
     }
   };
 
@@ -957,16 +1001,116 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleManualRefreshUsers}
-                    disabled={loadingUsers}
-                    className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 text-stone-950 ${loadingUsers ? 'animate-spin' : ''}`} />
-                    <span>{loadingUsers ? 'Đang nạp dữ liệu...' : 'Làm mới danh sách'}</span>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddUserOpen(!isAddUserOpen)}
+                      className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{isAddUserOpen ? 'Đóng form' : 'Thêm / Đồng bộ tài khoản'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleManualRefreshUsers}
+                      disabled={loadingUsers}
+                      className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 text-stone-950 ${loadingUsers ? 'animate-spin' : ''}`} />
+                      <span>{loadingUsers ? 'Đang nạp...' : 'Làm mới'}</span>
+                    </button>
+                  </div>
                 </div>
+
+                {/* Add User Form from Firebase Console */}
+                {isAddUserOpen && (
+                  <form onSubmit={handleAddUserSubmit} className="p-4 bg-emerald-950/90 border border-emerald-700/80 rounded-xl space-y-3 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <Users className="w-4 h-4" />
+                        Đồng bộ tài khoản từ Firebase Console
+                      </span>
+                      <span className="text-[10px] text-stone-300">
+                        Nhập email hoặc UID đã tạo trên console.firebase.google.com
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-stone-300 mb-1">
+                          Địa chỉ Email (*)
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          placeholder="cuongnga8185@gmail.com"
+                          className="w-full px-3 py-1.5 text-xs bg-stone-900 border border-stone-700 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-stone-300 mb-1">
+                          Tên hiển thị
+                        </label>
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          placeholder="Quản trị viên Cường"
+                          className="w-full px-3 py-1.5 text-xs bg-stone-900 border border-stone-700 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-stone-300 mb-1">
+                          Quyền hạn
+                        </label>
+                        <select
+                          value={newRole}
+                          onChange={(e) => setNewRole(e.target.value as any)}
+                          className="w-full px-3 py-1.5 text-xs bg-stone-900 border border-stone-700 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        >
+                          <option value="admin">Quản trị viên (Admin)</option>
+                          <option value="user">Người dùng (User)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-stone-300 mb-1">
+                          Mã UID Firebase (Tùy chọn)
+                        </label>
+                        <input
+                          type="text"
+                          value={newUid}
+                          onChange={(e) => setNewUid(e.target.value)}
+                          placeholder="EyJGQGdrs2hl2SrlxOx4nhZk1se2"
+                          className="w-full px-3 py-1.5 text-xs bg-stone-900 border border-stone-700 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddUserOpen(false)}
+                        className="px-3 py-1.5 text-xs text-stone-300 hover:text-white cursor-pointer"
+                      >
+                        Hủy
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isAddingUser}
+                        className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isAddingUser ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        <span>{isAddingUser ? 'Đang lưu...' : 'Lưu & Đồng bộ ngay'}</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 {/* Firestore Database Connection Bar */}
                 <div className="pt-2 border-t border-emerald-800/80 flex flex-wrap items-center justify-between text-[11px] text-stone-300 gap-2">

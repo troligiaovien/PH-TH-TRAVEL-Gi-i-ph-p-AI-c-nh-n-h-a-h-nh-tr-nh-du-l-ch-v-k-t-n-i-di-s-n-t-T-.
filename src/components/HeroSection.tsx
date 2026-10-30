@@ -123,35 +123,62 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {subtitle}
         </p>
 
-        {/* Compact Live Search Bar */}
-        <div className="mt-6 sm:mt-7 max-w-lg mx-auto relative text-left">
-          <div className="relative flex items-center bg-stone-950/90 border border-stone-700/80 rounded-xl shadow-lg p-1 focus-within:border-amber-400 transition-colors">
-            <div className="pl-3 pr-2 text-stone-400">
-              <Search className="w-4 h-4" />
+        {/* Premium Live Search Bar */}
+        <div className="mt-6 sm:mt-7 max-w-xl mx-auto relative text-left">
+          <div className="relative flex items-center bg-stone-950/85 backdrop-blur-md border border-stone-700/80 hover:border-stone-600 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-2xl shadow-2xl p-1.5 transition-all">
+            <div className="pl-3.5 pr-2.5 text-stone-400">
+              <Search className="w-4 h-4 text-amber-400/90" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm kiếm nhanh trong 5 danh thắng..."
-              className="w-full bg-transparent text-xs text-stone-100 placeholder:text-stone-500 py-1.5 pr-6 focus:outline-none"
+              placeholder="Tìm kiếm di tích, đồi chè, đầm nước, ẩm thực Đất Tổ..."
+              className="w-full bg-transparent text-xs sm:text-sm text-stone-100 placeholder:text-stone-400/80 py-2 pr-6 focus:outline-none"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="p-1 text-stone-400 hover:text-stone-200"
+                className="p-1.5 text-stone-400 hover:text-stone-200 transition-colors cursor-pointer rounded-lg hover:bg-stone-800"
                 aria-label="Xóa"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             )}
+            <button
+              onClick={() => {
+                if (filteredSuggestions.length > 0) {
+                  onSelectDestination(filteredSuggestions[0]);
+                } else {
+                  onOpenDigitalMap();
+                }
+              }}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-800 to-emerald-900 hover:from-emerald-700 hover:to-emerald-800 text-amber-300 text-xs font-semibold shrink-0 cursor-pointer transition-all border border-emerald-700/60 shadow-xs"
+            >
+              <span>Khám phá</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Quick Discovery Tags */}
+          <div className="mt-3 flex items-center justify-center flex-wrap gap-1.5 text-[11px] text-stone-400">
+            <span className="text-stone-400 font-medium mr-0.5">Gợi ý tìm nhanh:</span>
+            {destinations.slice(0, 4).map((d) => (
+              <button
+                key={d.id}
+                onClick={() => onSelectDestination(d)}
+                className="px-2.5 py-0.5 rounded-full bg-stone-900/80 hover:bg-emerald-950 text-stone-300 hover:text-amber-300 border border-stone-800 hover:border-amber-400/40 transition-colors cursor-pointer"
+              >
+                {d.name}
+              </button>
+            ))}
           </div>
 
           {/* Search Dropdown */}
           {searchTerm.trim().length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl overflow-hidden z-30">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-stone-900/95 backdrop-blur-md border border-stone-700/80 rounded-2xl shadow-2xl overflow-hidden z-30 divide-y divide-stone-800">
               {filteredSuggestions.length > 0 ? (
-                <div className="py-1 divide-y divide-stone-800">
+                <div className="py-1">
                   {filteredSuggestions.map((dest) => (
                     <button
                       key={dest.id}
@@ -159,25 +186,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                         onSelectDestination(dest);
                         setSearchTerm('');
                       }}
-                      className="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-stone-800 transition-colors cursor-pointer group"
+                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-stone-800/80 transition-colors cursor-pointer group"
                     >
-                      <div>
-                        <div className="text-xs font-semibold text-stone-100 group-hover:text-amber-400">
-                          {dest.name}
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center text-sm shrink-0 border border-stone-700">
+                          {dest.imagePlaceholder.symbol}
                         </div>
-                        <div className="text-[11px] text-stone-400">
-                          {dest.district}
+                        <div>
+                          <div className="text-xs sm:text-sm font-semibold text-stone-100 group-hover:text-amber-300 transition-colors">
+                            {dest.name}
+                          </div>
+                          <div className="text-[11px] text-stone-400 flex items-center gap-1.5">
+                            <span className="text-stone-300">{dest.district}</span>
+                            <span>·</span>
+                            <span>{dest.categoryLabel}</span>
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[11px] text-emerald-400 font-medium">
-                        Xem chi tiết →
+                      <span className="text-xs text-amber-400 font-semibold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                        Chi tiết <ArrowRight className="w-3.5 h-3.5" />
                       </span>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="p-4 text-center text-xs text-stone-400">
-                  Không tìm thấy địa điểm khớp với "{searchTerm}".
+                <div className="p-5 text-center text-xs text-stone-400">
+                  Không tìm thấy điểm đến nào phù hợp với "<span className="text-stone-200 font-medium">{searchTerm}</span>".
                 </div>
               )}
             </div>

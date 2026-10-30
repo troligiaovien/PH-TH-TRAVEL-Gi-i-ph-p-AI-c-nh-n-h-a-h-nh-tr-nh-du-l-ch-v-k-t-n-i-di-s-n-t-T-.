@@ -1,14 +1,21 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   type User
 } from 'firebase/auth';
 import {
+  initializeFirestore,
   getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   getDoc,
   getDocFromServer,
@@ -19,16 +26,31 @@ import {
   getDocs,
   writeBatch,
   serverTimestamp,
-  type Unsubscribe
+  type Unsubscribe,
+  type Firestore
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DESTINATIONS_DATA } from '../data/destinations';
 
-// Initialize Firebase App
-export const app = initializeApp(firebaseConfig);
+// Initialize Firebase App singleton
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Critical: Use the provisioned firestoreDatabaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with robust multi-tab persistent IndexedDB local cache
+let firestoreInstance: Firestore;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    },
+    firebaseConfig.firestoreDatabaseId
+  );
+} catch (e) {
+  firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+export const db = firestoreInstance;
 export const auth = getAuth(app);
 
 export const googleProvider = new GoogleAuthProvider();
@@ -240,7 +262,7 @@ export async function syncUserProfile(user: User): Promise<RegisteredUser> {
   return profileData;
 }
 
-// User authentication helper
+// User authentication helpers
 export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -251,6 +273,89 @@ export async function signInWithGoogle() {
     console.error('Lỗi đăng nhập Google:', error);
     throw error;
   }
+}
+
+export async function signInWithEmail(email: string, pass: string) {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email.trim(), pass);
+    const user = result.user;
+    await syncUserProfile(user);
+    return user;
+  } catch (error: any) {
+    console.error('Lỗi đăng nhập Email/Mật khẩu:', error);
+    throw error;
+  }
+}
+
+export async function registerWithEmail(email: string, pass: string, displayName?: string) {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+    const user = result.user;
+    if (displayName) {
+      try {
+        await updateProfile(user, { displayName });
+      } catch (e) {}
+    }
+    await syncUserProfile(user);
+    return user;
+  } catch (error: any) {
+    console.error('Lỗi đăng ký tài khoản:', error);
+    throw error;
+  }
+}
+
+export async function sendResetPassword(email: string) {
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+  } catch (error: any) {
+    console.error('Lỗi gửi email đặt lại mật khẩu:', error);
+    throw error;
+  }
+}
+
+/**
+ * Manually add or sync a user from Firebase Console into Firestore and local cache
+ */
+export async function addOrSyncRegisteredUser(
+  userInfo: Partial<RegisteredUser> & { email: string; uid?: string }
+): Promise<RegisteredUser> {
+  const email = userInfo.email.trim();
+  const uid = userInfo.uid?.trim() || `user-${Date.now().toString(36)}`;
+  const now = new Date().toISOString();
+
+  const profileData: RegisteredUser = {
+    id: uid,
+    uid,
+    email,
+    displayName: userInfo.displayName || email.split('@')[0],
+    photoURL: userInfo.photoURL || '',
+    role: isUserAdmin(email) ? 'admin' : (userInfo.role || 'user'),
+    createdAt: userInfo.createdAt || now,
+    lastLoginAt: userInfo.lastLoginAt || now,
+    updatedAt: now,
+    providerId: userInfo.providerId || (email.includes('@gmail') ? 'google.com' : 'password'),
+    emailVerified: userInfo.emailVerified ?? true
+  };
+
+  try {
+    const currentCached = getCachedRegisteredUsers();
+    const idx = currentCached.findIndex((u) => u.uid === uid || u.email.toLowerCase() === email.toLowerCase());
+    if (idx >= 0) {
+      currentCached[idx] = { ...currentCached[idx], ...profileData };
+    } else {
+      currentCached.unshift(profileData);
+    }
+    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(currentCached));
+  } catch (e) {}
+
+  try {
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, profileData, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
+  }
+
+  return profileData;
 }
 
 /**
@@ -569,12 +674,28 @@ export async function deleteGalleryPhotoFromCloud(destinationId: string, photoId
   }
 }
 
+export const DELETED_DESTINATIONS_KEY = 'phutho_deleted_destinations_cache';
+
+export function getDeletedDestinationIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_DESTINATIONS_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch (e) {}
+  return new Set();
+}
+
 /**
  * Delete destination and its gallery subcollection from Firestore (Admin only)
  */
 export async function deleteDestinationFromCloud(destinationId: string) {
   const path = `destinations/${destinationId}`;
   try {
+    try {
+      const deleted = getDeletedDestinationIds();
+      deleted.add(destinationId);
+      localStorage.setItem(DELETED_DESTINATIONS_KEY, JSON.stringify(Array.from(deleted)));
+    } catch (e) {}
+
     try {
       const galleryCol = collection(db, 'destinations', destinationId, 'gallery');
       const gallerySnap = await getDocs(galleryCol);
@@ -602,17 +723,24 @@ export async function deleteDestinationFromCloud(destinationId: string) {
 export const DESTINATIONS_CACHE_KEY = 'phutho_destinations_cache';
 
 /**
- * Ensures destinations always have their cover images, gallery items, and user-uploaded photos intact,
- * preventing any photo disappearance due to Firestore quota resets, partial saves, or network gaps.
+ * Ensures destinations faithfully preserve custom user edits and photos,
+ * without force-reverting to default placeholders.
  */
 export function healAndMergeDestinations(incoming: Destination[]): Destination[] {
   const map = new Map<string, Destination>();
+  const deletedIds = getDeletedDestinationIds();
 
-  // 1. Seed defaults first from DESTINATIONS_DATA
-  DESTINATIONS_DATA.forEach((d) => map.set(d.id, { ...d }));
+  // 1. Seed defaults first from DESTINATIONS_DATA if not marked deleted
+  DESTINATIONS_DATA.forEach((d) => {
+    if (!deletedIds.has(d.id)) {
+      map.set(d.id, { ...d });
+    }
+  });
 
   // 2. Process incoming destinations
   incoming.forEach((inDest) => {
+    if (deletedIds.has(inDest.id)) return;
+
     const defaultDest = map.get(inDest.id);
     if (!defaultDest) {
       map.set(inDest.id, inDest);
@@ -626,10 +754,10 @@ export function healAndMergeDestinations(incoming: Destination[]): Destination[]
       merged.coverImage = defaultDest.coverImage || merged.gallery?.[0]?.url || '/images/den-hung/cover.jpg';
     }
 
-    const inGallery = inDest.gallery || [];
+    const inGallery = inDest.gallery;
     const defaultGallery = defaultDest.gallery || [];
 
-    if (inGallery.length > 0) {
+    if (inGallery && inGallery.length > 0) {
       // Heal any empty urls
       const healedGallery = inGallery.map((img, idx) => {
         if (!img.url || img.url.trim() === '') {
@@ -642,10 +770,8 @@ export function healAndMergeDestinations(incoming: Destination[]): Destination[]
         return img;
       });
 
-      // Keep default gallery items so uploaded photos don't delete initial gallery photos
-      const existingIds = new Set(healedGallery.map((g) => g.id));
-      const preservedDefaults = defaultGallery.filter((dg) => !existingIds.has(dg.id));
-      merged.gallery = [...healedGallery, ...preservedDefaults];
+      // Faithfully keep saved gallery
+      merged.gallery = healedGallery;
     } else {
       merged.gallery = [...defaultGallery];
     }

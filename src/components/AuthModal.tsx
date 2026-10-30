@@ -8,10 +8,20 @@ import {
   ShieldCheck,
   RefreshCw,
   AlertCircle,
-  Shield
+  Shield,
+  Mail,
+  Lock,
+  UserPlus
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
-import { signInWithGoogle, logoutUser, isUserAdmin } from '../lib/firebase';
+import {
+  signInWithGoogle,
+  signInWithEmail,
+  registerWithEmail,
+  sendResetPassword,
+  logoutUser,
+  isUserAdmin
+} from '../lib/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -32,6 +42,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [authMethod, setAuthMethod] = useState<'google' | 'email_login' | 'email_register'>('google');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   if (!isOpen) return null;
 
@@ -49,6 +64,78 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         setErrorMsg(err.message || 'Không thể đăng nhập bằng Google. Vui lòng thử lại.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const user = await signInWithEmail(email, password);
+      onShowToast(`Đăng nhập thành công! Chào mừng ${user.displayName || user.email}`, 'success');
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setErrorMsg('Email hoặc mật khẩu không chính xác. Nếu chưa có tài khoản, vui lòng chọn "Đăng ký".');
+      } else if (err.code === 'auth/invalid-email') {
+        setErrorMsg('Định dạng email không hợp lệ.');
+      } else {
+        setErrorMsg(err.message || 'Không thể đăng nhập. Vui lòng thử lại.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg('Vui lòng nhập email và mật khẩu.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMsg('Mật khẩu tối thiểu phải từ 6 ký tự trở lên.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const user = await registerWithEmail(email, password, displayName);
+      onShowToast(`Đăng ký thành công! Chào mừng ${user.displayName || user.email}`, 'success');
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        setErrorMsg('Email này đã được sử dụng. Vui lòng chọn "Đăng nhập".');
+      } else {
+        setErrorMsg(err.message || 'Không thể tạo tài khoản. Vui lòng thử lại.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setErrorMsg('Vui lòng nhập Email trước khi yêu cầu đặt lại mật khẩu.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      await sendResetPassword(email);
+      setResetSent(true);
+      onShowToast(`Đã gửi liên kết đặt lại mật khẩu tới ${email}`, 'success');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Không thể gửi email đặt lại mật khẩu.');
     } finally {
       setLoading(false);
     }
@@ -200,13 +287,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             /* Guest / Login View */
             <div className="space-y-4">
-              <div className="text-center space-y-1.5">
-                <h4 className="font-bold text-stone-900 text-base">Đăng nhập bằng tài khoản Google</h4>
-                <p className="text-xs text-stone-600 leading-relaxed">
-
-                </p>
+              {/* Auth Method Tabs */}
+              <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('google');
+                    setErrorMsg(null);
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    authMethod === 'google'
+                      ? 'bg-white text-stone-900 shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <span>Google</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('email_login');
+                    setErrorMsg(null);
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    authMethod === 'email_login'
+                      ? 'bg-white text-stone-900 shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Email & Mật khẩu</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('email_register');
+                    setErrorMsg(null);
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    authMethod === 'email_register'
+                      ? 'bg-white text-stone-900 shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Đăng ký</span>
+                </button>
               </div>
-
 
               {errorMsg && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
@@ -215,40 +342,197 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               )}
 
-              {/* Google Sign In Button */}
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-sm rounded-xl border-2 border-stone-300 shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <RefreshCw className="w-5 h-5 animate-spin text-emerald-800" />
-                ) : (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                )}
-                <span>{loading ? 'Đang kết nối Google...' : 'Tiếp tục với Google'}</span>
-              </button>
+              {resetSent && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>Đã gửi hướng dẫn đặt lại mật khẩu về hòm thư của bạn!</span>
+                </div>
+              )}
 
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-1">
+              {authMethod === 'google' && (
+                <div className="space-y-3 pt-1">
+                  <p className="text-xs text-stone-600 text-center">
+                    Đăng nhập nhanh an toàn 1-chạm bằng tài khoản Google của bạn.
+                  </p>
+
+                  {/* Google Sign In Button */}
+                  <button
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-sm rounded-xl border-2 border-stone-300 shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-5 h-5 animate-spin text-emerald-800" />
+                    ) : (
+                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                        />
+                      </svg>
+                    )}
+                    <span>{loading ? 'Đang kết nối Google...' : 'Tiếp tục với Google'}</span>
+                  </button>
+                </div>
+              )}
+
+              {authMethod === 'email_login' && (
+                <form onSubmit={handleEmailSignIn} className="space-y-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      Địa chỉ Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="ten@gmail.com"
+                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      Mật khẩu
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] pt-1">
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      className="text-emerald-800 hover:underline cursor-pointer font-medium"
+                    >
+                      Quên mật khẩu?
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMethod('email_register')}
+                      className="text-stone-600 hover:text-stone-900 cursor-pointer"
+                    >
+                      Chưa có tài khoản? <strong>Đăng ký ngay</strong>
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <LogIn className="w-4 h-4" />
+                    )}
+                    <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
+                  </button>
+                </form>
+              )}
+
+              {authMethod === 'email_register' && (
+                <form onSubmit={handleEmailRegister} className="space-y-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      Họ và Tên (Tùy chọn)
+                    </label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Nguyễn Văn A"
+                      className="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      Địa chỉ Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="ten@gmail.com"
+                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      Mật khẩu (Tối thiểu 6 ký tự)
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-right pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setAuthMethod('email_login')}
+                      className="text-stone-600 hover:text-stone-900 cursor-pointer"
+                    >
+                      Đã có tài khoản? <strong>Đăng nhập</strong>
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <UserPlus className="w-4 h-4" />
+                    )}
+                    <span>{loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản mới'}</span>
+                  </button>
+                </form>
+              )}
+
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-1 border-t border-stone-100">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Bảo mật theo tiêu chuẩn Google OAuth 2.0 & Firestore Rules</span>
+                <span>Bảo mật theo tiêu chuẩn Firebase Authentication & OAuth 2.0</span>
               </div>
             </div>
           )}

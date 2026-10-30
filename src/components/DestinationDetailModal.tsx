@@ -282,43 +282,58 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Visual Banner */}
+        {/* Modal Visual Banner with Real Photography */}
         <div
-          className={`relative aspect-[21/9] sm:aspect-[24/7] bg-gradient-to-br ${destination.imagePlaceholder.colorGradient} p-6 sm:p-7 flex flex-col justify-end text-white overflow-hidden`}
+          className={`relative aspect-[21/9] sm:aspect-[24/7] bg-stone-900 p-6 sm:p-7 flex flex-col justify-end text-white overflow-hidden`}
         >
-          {/* Subtle background decoration */}
-          <div className="absolute inset-0 bg-stone-950/20 mix-blend-multiply pointer-events-none" />
+          {destination.coverImage ? (
+            <img
+              src={destination.coverImage}
+              alt={destination.name}
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/images/den-hung/cover.jpg';
+              }}
+            />
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-br ${destination.imagePlaceholder.colorGradient}`} />
+          )}
+
+          {/* Vignette gradient for flawless contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-stone-950/60 pointer-events-none" />
 
           <div className="relative z-10 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300 drop-shadow-xs mb-1">
-              <span>{destination.kicker}</span>
-              <span aria-hidden="true">·</span>
-              <span>{destination.district}</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300 drop-shadow-md mb-1.5">
+              <span className="px-2 py-0.5 rounded bg-stone-950/70 border border-amber-400/30 font-bold">{destination.kicker}</span>
+              <span aria-hidden="true" className="text-stone-400">·</span>
+              <span className="text-stone-200">{destination.district}</span>
 
               {combinedGallery.length > 0 && (
                 <button
                   onClick={() => setActiveTab('gallery')}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-900/70 hover:bg-stone-900 text-white text-[11px] font-medium border border-white/20 transition-colors ml-1 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-900/80 hover:bg-stone-900 text-amber-300 text-[11px] font-bold border border-amber-300/40 transition-colors ml-1 cursor-pointer shadow-xs"
                 >
-                  <Camera className="w-3.5 h-3.5 text-amber-300" />
-                  <span>{combinedGallery.length} ảnh cảnh đẹp & di tích</span>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>{combinedGallery.length} ảnh cảnh đẹp</span>
                 </button>
               )}
             </div>
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-white drop-shadow-sm">
+            <h2 className="text-2xl sm:text-3xl font-serif font-black tracking-tight text-white drop-shadow-md">
               {destination.name}
             </h2>
           </div>
-          <div className="absolute top-4 left-4 text-3xl opacity-80">
+          <div className="absolute top-4 left-4 text-3xl opacity-80 drop-shadow-md">
             {destination.imagePlaceholder.symbol}
           </div>
-          <div className="absolute bottom-2 right-4 text-[10px] text-stone-300/80 italic hidden sm:block">
+          <div className="absolute bottom-2 right-4 text-[11px] text-stone-300/90 italic hidden sm:block drop-shadow-sm">
             {destination.imagePlaceholder.caption}
           </div>
         </div>
 
         {/* Streamlined Tab Switcher (Includes Gallery tab) */}
-        <div className="flex border-b border-stone-200 px-6 bg-stone-50 overflow-x-auto gap-2 shrink-0">
+        <div className="flex border-b border-stone-200/90 px-6 bg-stone-100/70 overflow-x-auto gap-2 shrink-0">
           {[
             { id: 'overview', label: 'Thông tin chi tiết' },
             {
@@ -334,13 +349,13 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 px-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`py-3 px-3 text-xs font-bold whitespace-nowrap border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
                   activeTab === tab.id
-                    ? 'border-emerald-800 text-emerald-950 font-bold'
-                    : 'border-transparent text-stone-600 hover:text-stone-900'
+                    ? 'border-emerald-900 text-emerald-950 bg-white/70 rounded-t-lg'
+                    : 'border-transparent text-stone-600 hover:text-stone-950 hover:bg-stone-200/40'
                 }`}
               >
-                {Icon && <Icon className="w-3.5 h-3.5" />}
+                {Icon && <Icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-emerald-800' : 'text-stone-500'}`} />}
                 <span>{tab.label}</span>
               </button>
             );

@@ -665,16 +665,35 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
           {/* Right Panel: Selected Destination Detail & Road Guidance (Col 4) */}
           <div className="lg:col-span-4 flex flex-col gap-5">
             {/* Active Destination Card */}
-            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-md space-y-4">
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-md space-y-4 overflow-hidden">
+              {/* Cover Photo Header */}
+              {selectedDestination.coverImage && (
+                <div className="relative aspect-[16/9] -mx-6 -mt-6 mb-2 bg-stone-900 overflow-hidden">
+                  <img
+                    src={selectedDestination.coverImage}
+                    alt={selectedDestination.name}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/images/den-hung/cover.jpg';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/20 to-black/30 pointer-events-none" />
+                  <span className="absolute bottom-2.5 left-3 text-[11px] font-bold text-amber-300 px-2.5 py-0.5 rounded-md bg-stone-950/80 border border-amber-400/30 backdrop-blur-xs">
+                    {selectedDestination.kicker}
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between text-xs text-stone-500">
                 <span className="font-semibold text-stone-700">{selectedDestination.district}</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold text-[10px]">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold text-[10px] border border-emerald-200">
                   {selectedDestination.categoryLabel}
                 </span>
               </div>
 
               <div>
-                <h3 className="text-xl font-serif font-bold text-stone-900">
+                <h3 className="text-xl font-serif font-black text-stone-900 tracking-tight">
                   {selectedDestination.name}
                 </h3>
                 <p className="text-xs text-stone-600 mt-1.5 leading-relaxed line-clamp-3">
