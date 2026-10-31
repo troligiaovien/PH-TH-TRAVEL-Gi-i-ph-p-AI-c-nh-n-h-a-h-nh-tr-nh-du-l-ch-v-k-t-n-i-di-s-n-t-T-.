@@ -11,7 +11,13 @@ import {
   Shield,
   Mail,
   Lock,
-  UserPlus
+  UserPlus,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  KeyRound,
+  Send,
+  Sparkles
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import {
@@ -44,10 +50,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [authMethod, setAuthMethod] = useState<'google' | 'email_login' | 'email_register'>('google');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
+
+  // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+
+  // UI states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
   if (!isOpen) return null;
@@ -62,7 +75,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/popup-closed-by-user') {
-        setErrorMsg('Cửa sổ đăng nhập đã được đóng trước khi hoàn tất.');
+        setErrorMsg('Cửa sổ đăng nhập Google đã được đóng trước khi hoàn tất.');
       } else {
         setErrorMsg(err.message || 'Không thể đăng nhập bằng Google. Vui lòng thử lại.');
       }
@@ -73,7 +86,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu.');
       return;
     }
@@ -85,12 +98,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setErrorMsg('Email hoặc mật khẩu không chính xác. Nếu chưa có tài khoản, vui lòng chọn "Đăng ký".');
+      if (err.code === 'auth/user-not-found') {
+        setErrorMsg('Tài khoản email này chưa được đăng ký. Vui lòng chuyển sang tab "Đăng ký" để tạo tài khoản mới.');
+      } else if (err.code === 'auth/wrong-password') {
+        setErrorMsg('Mật khẩu không chính xác. Vui lòng kiểm tra lại hoặc bấm "Quên mật khẩu?" để đặt lại.');
+      } else if (err.code === 'auth/invalid-credential') {
+        setErrorMsg('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
       } else if (err.code === 'auth/invalid-email') {
-        setErrorMsg('Định dạng email không hợp lệ.');
+        setErrorMsg('Định dạng email không hợp lệ. Vui lòng kiểm tra lại.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setErrorMsg('Bạn đã thử đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.');
       } else {
-        setErrorMsg(err.message || 'Không thể đăng nhập. Vui lòng thử lại.');
+        setErrorMsg(err.message || 'Không thể đăng nhập. Vui lòng kiểm tra kết nối.');
       }
     } finally {
       setLoading(false);
@@ -99,24 +118,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Vui lòng nhập email và mật khẩu.');
+    if (!email.trim() || !password) {
+      setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu.');
       return;
     }
     if (password.length < 6) {
       setErrorMsg('Mật khẩu tối thiểu phải từ 6 ký tự trở lên.');
       return;
     }
+    if (password !== confirmPassword) {
+      setErrorMsg('Mật khẩu xác nhận không trùng khớp. Vui lòng kiểm tra lại.');
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
     try {
-      const user = await registerWithEmail(email, password, displayName);
-      onShowToast(`Đăng ký thành công! Chào mừng ${user.displayName || user.email}`, 'success');
+      const user = await registerWithEmail(email, password, displayName.trim() || undefined);
+      onShowToast(`Đăng ký tài khoản thành công! Chào mừng ${user.displayName || user.email}`, 'success');
       onClose();
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/email-already-in-use') {
-        setErrorMsg('Email này đã được sử dụng. Vui lòng chọn "Đăng nhập".');
+        setErrorMsg('Email này đã được sử dụng. Vui lòng chuyển sang tab "Đăng nhập" hoặc chọn "Quên mật khẩu".');
+      } else if (err.code === 'auth/invalid-email') {
+        setErrorMsg('Định dạng email không hợp lệ.');
+      } else if (err.code === 'auth/weak-password') {
+        setErrorMsg('Mật khẩu quá ngắn. Vui lòng chọn mật khẩu từ 6 ký tự trở lên.');
       } else {
         setErrorMsg(err.message || 'Không thể tạo tài khoản. Vui lòng thử lại.');
       }
@@ -125,9 +152,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!email) {
-      setErrorMsg('Vui lòng nhập Email trước khi yêu cầu đặt lại mật khẩu.');
+  const handleSendResetEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setErrorMsg('Vui lòng nhập địa chỉ Email của bạn.');
       return;
     }
     setLoading(true);
@@ -135,9 +163,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       await sendResetPassword(email);
       setResetSent(true);
-      onShowToast(`Đã gửi liên kết đặt lại mật khẩu tới ${email}`, 'success');
+      onShowToast(`Đã gửi liên kết khôi phục mật khẩu tới ${email}`, 'success');
     } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể gửi email đặt lại mật khẩu.');
+      console.error(err);
+      if (err.code === 'auth/user-not-found') {
+        setErrorMsg('Không tìm thấy tài khoản nào gắn với địa chỉ email này. Vui lòng kiểm tra lại hoặc đăng ký mới.');
+      } else if (err.code === 'auth/invalid-email') {
+        setErrorMsg('Định dạng email không hợp lệ.');
+      } else {
+        setErrorMsg(err.message || 'Không thể gửi email khôi phục. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
@@ -159,82 +194,100 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-md bg-white rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-stone-200/90 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-stone-900 px-6 py-5 text-white flex items-center justify-between">
+        {/* Top Heritage Gold-Emerald Hairline Accent */}
+        <div className="h-1 bg-gradient-to-r from-emerald-900 via-amber-400 to-emerald-900 w-full" />
+
+        {/* Modal Header */}
+        <div className="bg-gradient-to-br from-stone-950 via-emerald-950 to-stone-900 px-6 py-5 text-white flex items-center justify-between border-b border-emerald-900/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-300/30 flex items-center justify-center text-amber-300">
-              <Cloud className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-900 to-stone-950 border border-amber-400/40 flex items-center justify-center text-amber-300 font-serif font-black text-sm shadow-[0_2px_10px_rgba(245,158,11,0.2)] shrink-0">
+              PT
             </div>
             <div>
-              <h3 className="font-serif text-lg font-bold">
-                {currentUser ? 'Tài khoản' : 'Đăng nhập Google'}
+              <h3 className="font-serif text-lg font-bold tracking-tight text-stone-100 flex items-center gap-1.5">
+                <span>PHÚ THỌ TRAVEL</span>
               </h3>
-              <p className="text-xs text-stone-300">Dịch vụ lưu trữ dữ liệu thời gian thực</p>
+              <p className="text-xs text-stone-300/90">
+                {currentUser
+                  ? 'Quản lý tài khoản & Dữ liệu đám mây'
+                  : authMode === 'register'
+                  ? 'Tạo tài khoản mới & Đồng bộ dữ liệu'
+                  : authMode === 'forgot'
+                  ? 'Khôi phục mật khẩu qua Email'
+                  : 'Đăng nhập để mở khóa đầy đủ tính năng'}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-stone-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 text-stone-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-5">
+        {/* Modal Body */}
+        <div className="p-6 sm:p-7 space-y-4">
           {currentUser ? (
-            /* Signed-in View */
-            <div className="space-y-5">
-              <div className="flex items-center gap-3.5 p-3.5 bg-stone-50 rounded-xl border border-stone-200">
+            /* ================= SIGNED-IN PROFILE VIEW ================= */
+            <div className="space-y-4">
+              <div className="flex items-center gap-3.5 p-4 bg-stone-50 rounded-2xl border border-stone-200/90 shadow-2xs">
                 {currentUser.photoURL ? (
                   <img
                     src={currentUser.photoURL}
                     alt={currentUser.displayName || 'Avatar'}
-                    className="w-13 h-13 rounded-full object-cover border-2 border-emerald-600 shadow-xs"
+                    className="w-13 h-13 rounded-full object-cover border-2 border-emerald-700 shadow-xs"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-13 h-13 rounded-full bg-emerald-900 text-amber-300 flex items-center justify-center font-bold text-lg">
+                  <div className="w-13 h-13 rounded-full bg-emerald-950 text-amber-300 border border-emerald-800 flex items-center justify-center font-bold text-lg shadow-xs">
                     {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-stone-900 text-sm truncate">
-                      {currentUser.displayName || 'Người dùng Google'}
+                      {currentUser.displayName || 'Người dùng'}
                     </span>
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   </div>
                   <p className="text-xs text-stone-500 truncate">{currentUser.email}</p>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md mt-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                    Đã đồng bộ đám mây
-                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                      Đã đồng bộ
+                    </span>
+                    {isUserAdmin(currentUser.email) && (
+                      <span className="text-[10px] font-bold text-amber-950 bg-amber-300 px-2 py-0.5 rounded-md uppercase">
+                        Quản trị viên
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Admin Privileges Card if user is Admin */}
-              {isUserAdmin(currentUser.email) ? (
-                <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-300 space-y-2.5">
+              {/* Admin Privileges Card */}
+              {isUserAdmin(currentUser.email) && (
+                <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-300 space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 font-bold text-amber-950 text-xs">
                       <Shield className="w-4 h-4 text-amber-700" />
-                      Quyền Quản Trị Viên Tối Cao (Super Admin)
+                      Quyền Quản Trị Viên (Super Admin)
                     </span>
                     <span className="bg-amber-400 text-stone-950 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
                       Toàn quyền
                     </span>
                   </div>
                   <p className="text-[11px] text-stone-700 leading-relaxed">
-                    Tài khoản <strong>{currentUser.email}</strong> có toàn quyền chỉnh sửa di tích, ảnh bìa, gallery, phát thông báo và kiểm soát app.
+                    Tài khoản <strong>{currentUser.email}</strong> có quyền quản trị, chỉnh sửa điểm đến, thông báo và cấu hình giao diện.
                   </p>
                   {onOpenAdmin && (
                     <button
@@ -243,143 +296,134 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         onClose();
                         onOpenAdmin();
                       }}
-                      className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                      className="interactive-btn w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-stone-950 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                     >
                       <Shield className="w-3.5 h-3.5 text-stone-950 fill-stone-950" />
-                      Mở Bảng Quản Trị Hệ Thống
+                      <span>Mở Bảng Quản Trị Hệ Thống</span>
                     </button>
                   )}
                 </div>
-              ) : null}
+              )}
 
-              {/* Cloud Sync Info */}
-              <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-2.5">
-                <div className="flex items-center justify-between text-emerald-950 font-semibold">
+              {/* Cloud Sync Summary */}
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-2">
+                <div className="flex items-center justify-between text-stone-800 font-semibold">
                   <span className="flex items-center gap-1.5">
                     <Cloud className="w-4 h-4 text-emerald-700" />
-                    Trạng thái đám mây
+                    Lưu trữ & Yêu thích
                   </span>
-                  <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                    Đã đồng bộ
+                  <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded text-[11px] font-bold">
+                    {favoritesCount} địa điểm đã lưu
                   </span>
                 </div>
-                <div className="text-stone-600 space-y-1.5 pt-1 border-t border-emerald-200/60">
-                  <div className="flex justify-between items-center">
-                    <span>Điểm đến yêu thích đã lưu:</span>
-                    <span className="font-bold text-emerald-900">{favoritesCount} địa điểm</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Chế độ sao lưu:</span>
-                    <span className="text-stone-700 font-medium">Tự động theo thời gian thực</span>
-                  </div>
-                </div>
+                <p className="text-[11px] text-stone-500">
+                  Dữ liệu yêu thích, lịch trình cá nhân và ghi chú được sao lưu an toàn theo tài khoản của bạn.
+                </p>
               </div>
 
-              {/* Sign out button */}
+              {/* Sign out Button */}
               <button
                 onClick={handleSignOut}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs rounded-xl border border-red-200 transition-colors cursor-pointer"
+                className="interactive-btn w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs rounded-xl border border-red-200 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>{loading ? 'Đang đăng xuất...' : 'Đăng xuất tài khoản'}</span>
               </button>
             </div>
           ) : (
-            /* Guest / Login View */
+            /* ================= GUEST AUTH FORMS ================= */
             <div className="space-y-4">
-              {/* Feature Lock Notice Banner */}
-              <div className="p-3 bg-amber-500/10 border border-amber-400/50 rounded-xl flex items-start gap-2.5 text-xs text-amber-950">
-                <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                <div className="leading-snug">
-                  <strong className="block font-bold text-amber-900 mb-0.5">
-                    {lockNotice ? 'Tính năng đang bị khóa' : 'Yêu cầu đăng nhập tài khoản:'}
-                  </strong>
-                  <span className="text-stone-700">
-                    {lockNotice || 'Các tính năng (Xem chi tiết, Bản đồ GPS, AI Lịch trình, Yêu thích...) cần đăng nhập tài khoản để mở khóa sử dụng và đồng bộ dữ liệu.'}
-                  </span>
+              {/* Feature Lock Notice Banner (When invoked from locked features) */}
+              {lockNotice && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-2.5 text-xs text-amber-950 animate-in fade-in duration-150">
+                  <div className="p-1 rounded-lg bg-amber-200 text-amber-900 shrink-0 mt-0.5">
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="leading-snug">
+                    <strong className="block font-bold text-amber-950 mb-0.5">
+                      Tính năng yêu cầu đăng nhập:
+                    </strong>
+                    <span className="text-stone-700">{lockNotice}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Auth Method Tabs */}
-              <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMethod('google');
-                    setErrorMsg(null);
-                  }}
-                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    authMethod === 'google'
-                      ? 'bg-white text-stone-900 shadow-xs'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  <span>Google</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMethod('email_login');
-                    setErrorMsg(null);
-                  }}
-                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    authMethod === 'email_login'
-                      ? 'bg-white text-stone-900 shadow-xs'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Email & Mật khẩu</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMethod('email_register');
-                    setErrorMsg(null);
-                  }}
-                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    authMethod === 'email_register'
-                      ? 'bg-white text-stone-900 shadow-xs'
-                      : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Đăng ký</span>
-                </button>
-              </div>
+              {/* SEGMENTED CONTROL: [ĐĂNG NHẬP] & [ĐĂNG KÝ] (hidden when in forgot password view) */}
+              {authMode !== 'forgot' && (
+                <div className="p-1.5 bg-stone-100/90 backdrop-blur-sm rounded-2xl border border-stone-200/80 shadow-inner grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setErrorMsg(null);
+                    }}
+                    className={`interactive-btn py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      authMode === 'login'
+                        ? 'bg-white text-emerald-950 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-stone-200/80'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                    }`}
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>ĐĂNG NHẬP</span>
+                  </button>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('register');
+                      setErrorMsg(null);
+                    }}
+                    className={`interactive-btn py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      authMode === 'register'
+                        ? 'bg-white text-emerald-950 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-stone-200/80'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>ĐĂNG KÝ</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Error Message Box */}
               {errorMsg && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{errorMsg}</span>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 flex items-start gap-2.5 animate-in fade-in duration-150">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                  <span className="leading-relaxed">{errorMsg}</span>
                 </div>
               )}
 
-              {resetSent && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>Đã gửi hướng dẫn đặt lại mật khẩu về hòm thư của bạn!</span>
-                </div>
-              )}
-
-              {authMethod === 'google' && (
-                <div className="space-y-3 pt-1">
-                  <p className="text-xs text-stone-600 text-center">
-                    Đăng nhập nhanh an toàn 1-chạm bằng tài khoản Google của bạn.
+              {/* Success Notification for Password Reset Email */}
+              {resetSent && authMode === 'forgot' && (
+                <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-950 space-y-2 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2 font-bold text-emerald-900">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Đã gửi email khôi phục thành công!</span>
+                  </div>
+                  <p className="leading-relaxed text-stone-700">
+                    Hệ thống đã gửi thư xác thực kèm liên kết đặt lại mật khẩu đến: <strong className="text-stone-900">{email}</strong>.
                   </p>
+                  <p className="text-[11px] text-stone-500">
+                    Vui lòng kiểm tra hộp thư đến (Inbox) hoặc hòm thư rác (Spam) và nhấp vào liên kết để tạo mật khẩu mới.
+                  </p>
+                </div>
+              )}
 
-                  {/* Google Sign In Button */}
+              {/* ================= TAB 1: ĐĂNG NHẬP (LOGIN) ================= */}
+              {authMode === 'login' && (
+                <div className="space-y-4">
+                  {/* Google Sign-in */}
                   <button
                     onClick={handleGoogleSignIn}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-sm rounded-xl border-2 border-stone-300 shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50"
+                    type="button"
+                    className="interactive-btn w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs rounded-xl border border-stone-300 shadow-2xs hover:shadow-xs hover:border-stone-400 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
-                      <RefreshCw className="w-5 h-5 animate-spin text-emerald-800" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-800" />
                     ) : (
-                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                         <path
                           fill="#4285F4"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -398,156 +442,353 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         />
                       </svg>
                     )}
-                    <span>{loading ? 'Đang kết nối Google...' : 'Tiếp tục với Google'}</span>
+                    <span>Tiếp tục với Google</span>
                   </button>
+
+                  {/* Clean Divider */}
+                  <div className="relative flex items-center justify-center my-3">
+                    <div className="border-t border-stone-200 w-full" />
+                    <span className="bg-white px-3 text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                      Hoặc với Email
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleEmailSignIn} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Địa chỉ Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="ten-cua-ban@gmail.com"
+                          className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-stone-700">
+                          Mật khẩu
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode('forgot');
+                            setErrorMsg(null);
+                            setResetSent(false);
+                          }}
+                          className="text-[11px] font-bold text-amber-800 hover:text-amber-950 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <KeyRound className="w-3 h-3 text-amber-700" />
+                          <span>Quên mật khẩu?</span>
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Nhập mật khẩu"
+                          className="w-full pl-10 pr-10 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 p-0.5 cursor-pointer"
+                          aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="interactive-btn w-full mt-2 py-3 px-4 bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-800 text-amber-300 font-bold text-xs rounded-xl shadow-[0_4px_16px_rgba(6,78,59,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
+                      ) : (
+                        <LogIn className="w-4 h-4 text-amber-300" />
+                      )}
+                      <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
+                    </button>
+                  </form>
+
+                  <div className="text-center pt-2 border-t border-stone-100 text-xs text-stone-600">
+                    Chưa có tài khoản?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('register');
+                        setErrorMsg(null);
+                      }}
+                      className="text-emerald-900 font-bold hover:underline cursor-pointer"
+                    >
+                      Đăng ký ngay
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {authMethod === 'email_login' && (
-                <form onSubmit={handleEmailSignIn} className="space-y-3 pt-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Địa chỉ Email
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="ten@gmail.com"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Mật khẩu
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] pt-1">
-                    <button
-                      type="button"
-                      onClick={handleResetPassword}
-                      className="text-emerald-800 hover:underline cursor-pointer font-medium"
-                    >
-                      Quên mật khẩu?
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMethod('email_register')}
-                      className="text-stone-600 hover:text-stone-900 cursor-pointer"
-                    >
-                      Chưa có tài khoản? <strong>Đăng ký ngay</strong>
-                    </button>
-                  </div>
-
+              {/* ================= TAB 2: ĐĂNG KÝ (REGISTER) ================= */}
+              {authMode === 'register' && (
+                <div className="space-y-4">
+                  {/* Google Sign-up */}
                   <button
-                    type="submit"
+                    onClick={handleGoogleSignIn}
                     disabled={loading}
-                    className="w-full py-2.5 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    type="button"
+                    className="interactive-btn w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs rounded-xl border border-stone-300 shadow-2xs hover:shadow-xs hover:border-stone-400 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-800" />
                     ) : (
-                      <LogIn className="w-4 h-4" />
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                        />
+                      </svg>
                     )}
-                    <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
+                    <span>Đăng ký nhanh với Google</span>
                   </button>
-                </form>
-              )}
 
-              {authMethod === 'email_register' && (
-                <form onSubmit={handleEmailRegister} className="space-y-3 pt-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Họ và Tên (Tùy chọn)
-                    </label>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
-                      className="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                    />
+                  <div className="relative flex items-center justify-center my-3">
+                    <div className="border-t border-stone-200 w-full" />
+                    <span className="bg-white px-3 text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                      Hoặc tạo tài khoản bằng Email
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Địa chỉ Email
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                  <form onSubmit={handleEmailRegister} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Họ và Tên (Tùy chọn)
+                      </label>
                       <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="ten@gmail.com"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Ví dụ: Nguyễn Văn An"
+                        className="w-full px-3.5 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Mật khẩu (Tối thiểu 6 ký tự)
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                      />
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Địa chỉ Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="ten-cua-ban@gmail.com"
+                          className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="text-[11px] text-right pt-1">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Mật khẩu (Tối thiểu 6 ký tự)
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Tối thiểu 6 ký tự"
+                          className="w-full pl-10 pr-10 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 p-0.5 cursor-pointer"
+                          aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Xác nhận lại Mật khẩu
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          required
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Nhập lại mật khẩu"
+                          className="w-full pl-10 pr-10 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 p-0.5 cursor-pointer"
+                          aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="interactive-btn w-full mt-2 py-3 px-4 bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-800 text-amber-300 font-bold text-xs rounded-xl shadow-[0_4px_16px_rgba(6,78,59,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
+                      ) : (
+                        <UserPlus className="w-4 h-4 text-amber-300" />
+                      )}
+                      <span>{loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản & Đăng ký'}</span>
+                    </button>
+                  </form>
+
+                  <div className="text-center pt-2 border-t border-stone-100 text-xs text-stone-600">
+                    Đã có tài khoản?{' '}
                     <button
                       type="button"
-                      onClick={() => setAuthMethod('email_login')}
-                      className="text-stone-600 hover:text-stone-900 cursor-pointer"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setErrorMsg(null);
+                      }}
+                      className="text-emerald-900 font-bold hover:underline cursor-pointer"
                     >
-                      Đã có tài khoản? <strong>Đăng nhập</strong>
+                      Đăng nhập ngay
                     </button>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-2.5 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <UserPlus className="w-4 h-4" />
-                    )}
-                    <span>{loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản mới'}</span>
-                  </button>
-                </form>
+                </div>
               )}
 
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-1 border-t border-stone-100">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Bảo mật theo tiêu chuẩn Firebase Authentication & OAuth 2.0</span>
+              {/* ================= VIEW 3: QUÊN MẬT KHẨU (FORGOT PASSWORD) ================= */}
+              {authMode === 'forgot' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setErrorMsg(null);
+                        setResetSent(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-900 hover:text-emerald-700 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Quay lại Đăng nhập</span>
+                    </button>
+                    <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                      Khôi phục mật khẩu
+                    </span>
+                  </div>
+
+                  {!resetSent ? (
+                    <>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        Nhập địa chỉ email tài khoản của bạn. Hệ thống sẽ gửi một email xác thực kèm liên kết khôi phục an toàn tới hòm thư của bạn.
+                      </p>
+
+                      <form onSubmit={handleSendResetEmail} className="space-y-3.5">
+                        <div>
+                          <label className="block text-xs font-semibold text-stone-700 mb-1">
+                            Địa chỉ Email đã đăng ký
+                          </label>
+                          <div className="relative">
+                            <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+                            <input
+                              type="email"
+                              required
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="ten-cua-ban@gmail.com"
+                              className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50/70 hover:bg-stone-50 focus:bg-white text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="interactive-btn w-full py-3 px-4 bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-800 text-amber-300 font-bold text-xs rounded-xl shadow-[0_4px_16px_rgba(6,78,59,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          {loading ? (
+                            <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
+                          ) : (
+                            <Send className="w-4 h-4 text-amber-300" />
+                          )}
+                          <span>{loading ? 'Đang gửi email...' : 'Gửi email khôi phục mật khẩu'}</span>
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('login');
+                          setErrorMsg(null);
+                          setResetSent(false);
+                        }}
+                        className="interactive-btn w-full py-3 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        <span>Quay lại Đăng nhập ngay</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="text-center pt-2 border-t border-stone-100 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setErrorMsg(null);
+                        setResetSent(false);
+                      }}
+                      className="text-stone-600 hover:text-stone-900 cursor-pointer"
+                    >
+                      Nhớ lại mật khẩu? <strong className="text-emerald-900">Đăng nhập</strong>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Security Trust Badge */}
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-3 border-t border-stone-100">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span>Mã hóa bảo mật 256-bit · Đồng bộ an toàn Đất Tổ Phú Thọ</span>
               </div>
             </div>
           )}

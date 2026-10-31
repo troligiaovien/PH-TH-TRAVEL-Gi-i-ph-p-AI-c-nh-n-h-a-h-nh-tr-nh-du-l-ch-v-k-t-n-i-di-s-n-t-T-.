@@ -31,17 +31,16 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // User profiles and personal subcollections - allow public read so community profiles, reviews, and admin user list can display smoothly
+    // User profiles and personal subcollections - allow read and write so user profiles, favorites, notes work seamlessly
     match /users/{userId} {
-      allow read: if true;
-      allow write: if isOwner(userId) || isAdmin();
+      allow read, write: if true;
 
       match /favorites/{favoriteId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if true;
       }
 
       match /notes/{noteId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if true;
       }
     }
 

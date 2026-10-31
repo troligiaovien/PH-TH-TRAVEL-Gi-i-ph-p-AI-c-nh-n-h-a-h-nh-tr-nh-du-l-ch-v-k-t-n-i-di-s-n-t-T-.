@@ -365,7 +365,7 @@ export const AITravelPlanner: React.FC<AITravelPlannerProps> = ({
   };
 
   return (
-    <div className="bg-stone-50/70 py-10 print:bg-white print:py-0">
+    <div className="bg-gradient-to-b from-[#08100d] via-[#0b1612] to-[#070c0a] text-stone-100 py-10 print:bg-white print:py-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* ========================================================= */}
         {/* SECTION 1: HERO & BRANDING BANNER (No Print) */}
@@ -486,10 +486,10 @@ export const AITravelPlanner: React.FC<AITravelPlannerProps> = ({
         {/* ========================================================= */}
         {/* SECTION 2: SMART PLANNER INPUT PANEL (No Print) */}
         {/* ========================================================= */}
-        <div className="print:hidden bg-white rounded-3xl border border-stone-200 shadow-md p-6 sm:p-8 space-y-6">
+        <div className="print:hidden bg-gradient-to-b from-[#111d18] via-[#0d1713] to-[#090f0d] rounded-3xl border border-emerald-900/70 shadow-2xl p-6 sm:p-8 space-y-6 text-stone-100">
           {/* Conversational Prompt Box */}
           <div className="space-y-3">
-            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-900">
+            <label className="block text-xs font-bold uppercase tracking-wider text-amber-400">
               Nhập mô tả chuyến đi của bạn (hoặc chọn gợi ý bên dưới)
             </label>
 
@@ -499,7 +499,7 @@ export const AITravelPlanner: React.FC<AITravelPlannerProps> = ({
                 onChange={(e) => setPromptText(e.target.value)}
                 placeholder="Ví dụ: Tôi muốn đưa gia đình 5 người gồm ông bà lớn tuổi và bé 8 tuổi đi Phú Thọ 2 ngày 1 đêm. Đoàn thích cảnh đẹp thiên nhiên, ngâm khoáng nóng thư thái, muốn ăn các món ngon bản địa và ngân sách khoảng 6 triệu đồng..."
                 rows={3}
-                className="w-full p-4 pr-24 rounded-2xl border border-stone-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 text-sm sm:text-base text-stone-800 placeholder-stone-400 resize-none shadow-2xs"
+                className="w-full p-4 pr-28 rounded-2xl border border-emerald-900/80 bg-[#060a08] focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 text-sm sm:text-base text-stone-100 placeholder-stone-500 resize-none shadow-2xs"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                     handleGenerate();
@@ -510,16 +510,16 @@ export const AITravelPlanner: React.FC<AITravelPlannerProps> = ({
               <button
                 onClick={() => handleGenerate()}
                 disabled={isGenerating}
-                className="absolute right-3 bottom-3.5 px-4 py-2 bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                className="absolute right-3 bottom-3.5 px-4 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 disabled:opacity-50 text-stone-950 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 shadow-lg transition-transform active:scale-95 cursor-pointer border border-amber-300"
               >
                 {isGenerating ? (
                   <>
-                    <Sparkles className="w-4 h-4 animate-spin" />
+                    <Sparkles className="w-4 h-4 animate-spin text-stone-950" />
                     <span>Đang lập kế hoạch...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <Sparkles className="w-4 h-4 text-stone-950" />
                     <span>Kiến Tạo Lịch Trình</span>
                   </>
                 )}

@@ -18,8 +18,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [bgImgError, setBgImgError] = useState(false);
 
-  // Parse title into lines (support multi-line stylized heading)
-  const rawTitle = uiSettings?.heroTitle?.trim() || 'CHẠM MIỀN DI SẢN\nMỞ LỐI HÀNH TRÌNH';
+  // Parse title into lines (support multi-line stylized heading with full Vietnamese NFC normalization)
+  let rawTitle = (uiSettings?.heroTitle?.trim() || 'CHẠM MIỀN DI SẢN\nMỞ LỐI HÀNH TRÌNH').normalize('NFC');
+  rawTitle = rawTitle
+    .replace(/CHẠM MIÊN DI SẴN/gi, 'CHẠM MIỀN DI SẢN')
+    .replace(/CHẠM MIÊN/gi, 'CHẠM MIỀN')
+    .replace(/DI SẴN/gi, 'DI SẢN')
+    .replace(/MỠ LÔI/gi, 'MỞ LỐI')
+    .replace(/MỠ LỐI/gi, 'MỞ LỐI')
+    .replace(/MỞ LÔI/gi, 'MỞ LỐI');
+
   const titleLines = rawTitle.split('\n').filter(Boolean);
 
   const kicker = uiSettings?.heroKicker || 'CỔNG THÔNG TIN DU LỊCH & DI SẢN THÔNG MINH TỈNH PHÚ THỌ';
@@ -94,23 +102,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       )}
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center">
-        {/* Subtle kicker with golden dot */}
-        <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-widest font-bold text-amber-300/90 mb-3.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/25 backdrop-blur-xs">
+        {/* Subtle kicker with golden dot - ample margin to guarantee no overlap */}
+        <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-widest font-bold text-amber-300/95 mb-5 sm:mb-7 lg:mb-8 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-400/35 backdrop-blur-md shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
           <span>{kicker}</span>
         </div>
 
-        {/* Hero Headline: Stylized, Sharp, Professional Typography */}
-        <h1 className="font-serif font-black tracking-tight sm:tracking-wider leading-[1.1] sm:leading-[1.12]">
+        {/* Hero Headline: Sharp ("nhọn"), Flowing ("bay"), tight line-gap with full Vietnamese diacritic clearance */}
+        <h1 className="relative z-20 select-none overflow-visible pt-0.5 sm:pt-1">
           {titleLines.map((line, idx) => (
             <span
               key={idx}
-              className={`block text-3xl sm:text-5xl lg:text-6xl font-serif font-black ${getTitleThemeClass()} ${
-                idx > 0 ? 'mt-1 sm:mt-2 text-2xl sm:text-4xl lg:text-5xl tracking-widest sm:tracking-[0.2em] font-extrabold' : ''
+              className={`block transition-all duration-300 overflow-visible ${getTitleThemeClass()} ${
+                idx === 0
+                  ? "font-['Lexend'] not-italic text-[62px] no-underline font-bold tracking-[0.06em] sm:tracking-[0.15em] uppercase pt-1 sm:pt-1.5 pb-0.5 leading-[1.12] sm:leading-[1.16]"
+                  : "mt-1 sm:mt-1.5 md:mt-2 font-['Lora'] not-italic text-2xl sm:text-4xl lg:text-5xl font-semibold tracking-[0.08em] sm:tracking-[0.18em] uppercase pt-1.5 sm:pt-2 pb-0.5 sm:pb-1 leading-[1.14] sm:leading-[1.18]"
               }`}
               style={{
-                letterSpacing: idx === 0 ? '-0.02em' : '0.04em',
-                textRendering: 'optimizeLegibility'
+                textRendering: 'geometricPrecision'
               }}
             >
               {line}
@@ -123,9 +132,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {subtitle}
         </p>
 
+        {/* Curatorial Heritage Utility Strip */}
+        <div className="mt-5 flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-[11px] sm:text-xs font-semibold text-stone-300/90">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-stone-900/60 border border-stone-800/80 backdrop-blur-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span>5 Di tích & Danh thắng xác minh</span>
+          </div>
+          <span className="text-stone-600 hidden sm:inline">·</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-stone-900/60 border border-stone-800/80 backdrop-blur-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Định vị GPS thực địa</span>
+          </div>
+          <span className="text-stone-600 hidden sm:inline">·</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-stone-900/60 border border-stone-800/80 backdrop-blur-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+            <span>Trải nghiệm 360° VR Đất Tổ</span>
+          </div>
+          <span className="text-stone-600 hidden sm:inline">·</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-stone-900/60 border border-stone-800/80 backdrop-blur-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+            <span>AI Lập lịch trình thông minh</span>
+          </div>
+        </div>
+
         {/* Premium Live Search Bar */}
         <div className="mt-6 sm:mt-7 max-w-xl mx-auto relative text-left">
-          <div className="relative flex items-center bg-stone-950/85 backdrop-blur-md border border-stone-700/80 hover:border-stone-600 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-2xl shadow-2xl p-1.5 transition-all">
+          <div className="relative flex items-center bg-stone-950/90 backdrop-blur-xl border border-stone-700/80 hover:border-amber-400/60 focus-within:border-amber-400 focus-within:ring-4 focus-within:ring-amber-400/20 rounded-2xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.08)] p-1.5 transition-all">
             <div className="pl-3.5 pr-2.5 text-stone-400">
               <Search className="w-4 h-4 text-amber-400/90" />
             </div>
@@ -153,21 +185,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   onOpenDigitalMap();
                 }
               }}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-800 to-emerald-900 hover:from-emerald-700 hover:to-emerald-800 text-amber-300 text-xs font-semibold shrink-0 cursor-pointer transition-all border border-emerald-700/60 shadow-xs"
+              className="interactive-btn hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-800 via-emerald-850 to-emerald-900 hover:from-emerald-700 hover:to-emerald-800 text-amber-300 text-xs font-bold shrink-0 cursor-pointer transition-all border border-emerald-600/70 shadow-[0_2px_12px_rgba(6,78,59,0.4)]"
             >
               <span>Khám phá</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5 text-amber-300" />
             </button>
           </div>
 
           {/* Quick Discovery Tags */}
-          <div className="mt-3 flex items-center justify-center flex-wrap gap-1.5 text-[11px] text-stone-400">
+          <div className="mt-3.5 flex items-center justify-center flex-wrap gap-1.5 text-[11px] text-stone-400">
             <span className="text-stone-400 font-medium mr-0.5">Gợi ý tìm nhanh:</span>
             {destinations.slice(0, 4).map((d) => (
               <button
                 key={d.id}
                 onClick={() => onSelectDestination(d)}
-                className="px-2.5 py-0.5 rounded-full bg-stone-900/80 hover:bg-emerald-950 text-stone-300 hover:text-amber-300 border border-stone-800 hover:border-amber-400/40 transition-colors cursor-pointer"
+                className="interactive-btn px-3 py-1 rounded-full bg-stone-900/90 hover:bg-emerald-950 text-stone-300 hover:text-amber-300 border border-stone-800 hover:border-amber-400/50 backdrop-blur-xs transition-all cursor-pointer shadow-2xs hover:shadow-xs"
               >
                 {d.name}
               </button>

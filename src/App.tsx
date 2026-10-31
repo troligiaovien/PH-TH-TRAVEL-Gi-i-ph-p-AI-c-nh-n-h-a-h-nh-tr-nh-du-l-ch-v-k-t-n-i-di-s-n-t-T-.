@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
 import {
   auth,
+  subscribeToAuth,
+  bootstrapSyncUsersToFirebase,
   subscribeToFavorites,
   saveFavoriteToCloud,
   removeFavoriteFromCloud,
@@ -60,9 +61,9 @@ export default function App() {
 
   const isAdmin = isUserAdmin(currentUser?.email);
 
-  // Track Firebase Auth state & notify Admin
+  // Track Auth state (Firebase & Resilient Cloud Session) & notify Admin
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = subscribeToAuth((user) => {
       setCurrentUser(user);
       setAuthLoading(false);
       if (user) {
@@ -78,6 +79,10 @@ export default function App() {
         }
       }
     });
+
+    // Proactively sync registered and admin accounts into Firebase Firestore
+    bootstrapSyncUsersToFirebase().catch((e) => console.warn('Bootstrap sync notice:', e));
+
     return () => unsubscribe();
   }, []);
 
@@ -306,7 +311,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 text-stone-800 selection:bg-emerald-900 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#070d0b] text-stone-100 selection:bg-amber-400 selection:text-stone-950 relative overflow-x-hidden">
+      {/* Radiant Imperial Heritage Ambient Glow Orbs */}
+      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-emerald-600/10 blur-[180px] pointer-events-none rounded-full -z-10" />
+      <div className="fixed top-1/3 right-10 w-[550px] h-[550px] bg-amber-500/10 blur-[180px] pointer-events-none rounded-full -z-10" />
+      <div className="fixed bottom-10 left-10 w-[600px] h-[600px] bg-emerald-700/10 blur-[200px] pointer-events-none rounded-full -z-10" />
+
       {/* System Announcement Banner if active */}
       <AnnouncementBanner
         announcement={announcement}
@@ -338,95 +348,114 @@ export default function App() {
           uiSettings={uiSettings}
         />
 
-            {/* Elevated View Tabs Switcher Bar */}
-            <div className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-16 z-30 shadow-xs">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between overflow-x-auto gap-4">
-                <div className="flex items-center gap-1.5 p-1 bg-stone-100/90 rounded-2xl border border-stone-200/60 shrink-0">
-                  <button
-                    onClick={() => handleTabChange('destinations')}
-                    data-cursor="Điểm đến"
-                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === 'destinations'
-                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                    }`}
-                  >
-                    <Compass className={`w-3.5 h-3.5 ${activeTab === 'destinations' ? 'text-amber-400' : 'text-stone-500'}`} />
-                    <span>{destinations.length} Điểm đến</span>
-                  </button>
+        {/* Elevated View Tabs Switcher Bar with Dark Depth Dock */}
+        <div className="bg-[#09120e]/95 backdrop-blur-xl border-b border-emerald-950/90 sticky top-16 z-30 shadow-[0_10px_35px_rgba(0,0,0,0.7)]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between overflow-x-auto gap-4">
+            <div className="flex items-center gap-1.5 p-1 bg-[#050907]/90 backdrop-blur-md rounded-2xl border border-emerald-900/70 shadow-inner shrink-0">
+              <button
+                onClick={() => handleTabChange('destinations')}
+                data-cursor="Điểm đến"
+                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'destinations'
+                    ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 shadow-[0_2px_15px_rgba(16,185,129,0.35)] ring-1 ring-amber-400/60'
+                    : 'text-stone-400 hover:text-stone-100 hover:bg-stone-800/60'
+                }`}
+              >
+                <Compass className={`w-3.5 h-3.5 ${activeTab === 'destinations' ? 'text-amber-400' : 'text-stone-400'}`} />
+                <span>{destinations.length} Điểm đến</span>
+              </button>
 
-                  <button
-                    onClick={() => handleTabChange('map')}
-                    data-cursor="Bản đồ"
-                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === 'map'
-                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                    }`}
-                  >
-                    <MapPin className={`w-3.5 h-3.5 ${activeTab === 'map' ? 'text-amber-400' : 'text-stone-500'}`} />
-                    <span>Bản đồ số & Chỉ đường</span>
-                  </button>
+              <button
+                onClick={() => handleTabChange('map')}
+                data-cursor="Bản đồ"
+                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'map'
+                    ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 shadow-[0_2px_15px_rgba(16,185,129,0.35)] ring-1 ring-amber-400/60'
+                    : 'text-stone-400 hover:text-stone-100 hover:bg-stone-800/60'
+                }`}
+              >
+                <MapPin className={`w-3.5 h-3.5 ${activeTab === 'map' ? 'text-amber-400' : 'text-stone-400'}`} />
+                <span>Bản đồ số & Chỉ đường</span>
+                {!currentUser && <Lock className="w-3 h-3 text-stone-500" />}
+              </button>
 
-                  <button
-                    onClick={() => handleTabChange('itineraries')}
-                    data-cursor="AI Lịch trình"
-                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === 'itineraries'
-                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                    <span>AI Kiến tạo Lịch trình</span>
-                  </button>
+              <button
+                onClick={() => handleTabChange('itineraries')}
+                data-cursor="AI Lịch trình"
+                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'itineraries'
+                    ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 shadow-[0_2px_15px_rgba(16,185,129,0.35)] ring-1 ring-amber-400/60'
+                    : 'text-stone-400 hover:text-stone-100 hover:bg-stone-800/60'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                <span>AI Kiến tạo Lịch trình</span>
+                {!currentUser && <Lock className="w-3 h-3 text-stone-500" />}
+              </button>
 
-                  <button
-                    onClick={() => handleTabChange('guide')}
-                    data-cursor="Cẩm nang"
-                    className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === 'guide'
-                        ? 'bg-emerald-950 text-amber-300 shadow-xs ring-1 ring-emerald-900/40'
-                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/80'
-                    }`}
-                  >
-                    <BookOpen className={`w-3.5 h-3.5 ${activeTab === 'guide' ? 'text-amber-400' : 'text-stone-500'}`} />
-                    <span>Cẩm nang & Dự án</span>
-                  </button>
+              <button
+                onClick={() => handleTabChange('guide')}
+                data-cursor="Cẩm nang"
+                className={`interactive-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'guide'
+                    ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 shadow-[0_2px_15px_rgba(16,185,129,0.35)] ring-1 ring-amber-400/60'
+                    : 'text-stone-400 hover:text-stone-100 hover:bg-stone-800/60'
+                }`}
+              >
+                <BookOpen className={`w-3.5 h-3.5 ${activeTab === 'guide' ? 'text-amber-400' : 'text-stone-400'}`} />
+                <span>Cẩm nang & Dự án</span>
+                {!currentUser && <Lock className="w-3 h-3 text-stone-500" />}
+              </button>
 
-                  {/* NGẮM PHÚ THỌ QUA 360 Link */}
-                  <a
-                    href="https://dulichphutho.com.vn/vi/explore360"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-cursor="360°"
-                    className="interactive-btn px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-400/25 via-amber-300/35 to-amber-400/25 hover:from-amber-400/45 hover:to-amber-300/50 text-amber-950 border border-amber-400/80 group shadow-2xs ml-0.5"
-                    title="Khám phá toàn cảnh 360 độ du lịch Phú Thọ"
-                  >
-                    <Compass className="w-3.5 h-3.5 text-amber-800 group-hover:rotate-90 transition-transform duration-500" />
-                    <span>NGẮM PHÚ THỌ QUA 360°</span>
+              {/* NGẮM PHÚ THỌ QUA 360 Link */}
+              <a
+                href="https://dulichphutho.com.vn/vi/explore360"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (!currentUser) {
+                    e.preventDefault();
+                    setAuthNoticeMessage('Tính năng "Ngắm Phú Thọ qua 360° VR" đã bị khóa. Vui lòng đăng nhập để mở khóa trải nghiệm.');
+                    addToast('🔒 Tính năng "Ngắm Phú Thọ qua 360° VR" đã bị khóa! Vui lòng đăng nhập.', 'error');
+                    setIsAuthModalOpen(true);
+                  }
+                }}
+                data-cursor="360°"
+                className="interactive-btn px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-amber-400/30 to-amber-500/20 hover:from-amber-400/40 hover:to-amber-300/50 text-amber-300 border border-amber-400/70 group shadow-[0_0_15px_rgba(245,158,11,0.25)] ml-0.5"
+                title={currentUser ? "Khám phá toàn cảnh 360 độ du lịch Phú Thọ" : "Khám phá toàn cảnh 360 độ du lịch Phú Thọ (Cần đăng nhập)"}
+              >
+                <Compass className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-90 transition-transform duration-500" />
+                <span>NGẮM PHÚ THỌ QUA 360°</span>
+                {currentUser ? (
+                  <>
                     <span className="text-[9px] bg-amber-400 text-stone-950 font-black px-1.5 py-0.2 rounded-full">VR</span>
-                    <ExternalLink className="w-3 h-3 text-amber-900/80 group-hover:text-amber-950" />
-                  </a>
-                </div>
+                    <ExternalLink className="w-3 h-3 text-amber-300 group-hover:text-amber-200" />
+                  </>
+                ) : (
+                  <span className="text-[9px] bg-stone-900 text-amber-300 font-bold px-1.5 py-0.2 rounded-full flex items-center gap-0.5 border border-amber-400/30">
+                    <Lock className="w-2.5 h-2.5" /> Khóa
+                  </span>
+                )}
+              </a>
+            </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  {isAdmin && (
-                    <button
-                      onClick={() => setIsAdminDashboardOpen(true)}
-                      className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer border border-amber-300 transition-colors shadow-2xs"
-                    >
-                      <Shield className="w-3 h-3 text-amber-800" />
-                      <span>Admin ({currentUser?.email?.split('@')[0]})</span>
-                    </button>
-                  )}
-                  <div className="text-[11px] text-stone-500 hidden lg:inline-flex items-center gap-1.5 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block" />
-                    <span>Giao diện tinh gọn · Trải nghiệm trực quan</span>
-                  </div>
-                </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {isAdmin && (
+                <button
+                  onClick={() => setIsAdminDashboardOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer border border-amber-400/40 transition-colors shadow-2xs"
+                >
+                  <Shield className="w-3 h-3 text-amber-400" />
+                  <span>Admin ({currentUser?.email?.split('@')[0]})</span>
+                </button>
+              )}
+              <div className="text-[11px] text-stone-400 hidden lg:inline-flex items-center gap-1.5 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                <span>Cổng thông tin Du lịch & Di sản Thông minh</span>
               </div>
             </div>
+          </div>
+        </div>
 
             {/* View 1: Destination Cards Catalog */}
             {activeTab === 'destinations' && (

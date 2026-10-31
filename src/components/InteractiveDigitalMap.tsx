@@ -470,21 +470,21 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
   };
 
   return (
-    <section id="digital-map" className="py-12 bg-stone-100/70 border-b border-stone-200">
+    <section id="digital-map" className="py-12 bg-gradient-to-b from-[#08100d] via-[#0c1613] to-[#070c0a] text-stone-100 border-b border-emerald-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-2">
-              <Compass className="w-3.5 h-3.5 text-emerald-700" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">
+              <Compass className="w-3.5 h-3.5 text-amber-400" />
               <span>Bản đồ số tương tác</span>
               <span aria-hidden="true">·</span>
               <span>Định vị GPS thực địa 5 điểm đến</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-400 tracking-tight drop-shadow-sm">
               BẢN ĐỒ SỐ DU LỊCH PHÚ THỌ
             </h2>
-            <p className="mt-2 text-sm text-stone-600 leading-relaxed">
+            <p className="mt-2 text-sm text-stone-300 leading-relaxed">
               Tích hợp định vị tọa độ GPS xác minh, cho phép thu phóng tự do, chuyển đổi lớp vệ tinh và liên kết trực tiếp với cung đường lịch trình AI.
             </p>
           </div>
@@ -492,19 +492,19 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
           <div className="flex items-center gap-2 self-start md:self-auto">
             <button
               onClick={onOpenEarth}
-              className="px-3.5 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              className="px-3.5 py-2 text-xs font-semibold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 rounded-xl border border-emerald-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
             >
-              <Globe className="w-4 h-4 text-emerald-700" />
+              <Globe className="w-4 h-4 text-emerald-400" />
               <span>Góc nhìn 3D Earth</span>
             </button>
           </div>
         </div>
 
         {/* Map Control Toolbar */}
-        <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-[#0b1612]/95 p-3.5 rounded-2xl border border-emerald-900/80 shadow-2xl flex flex-wrap items-center justify-between gap-4 text-stone-100">
           {/* Category Filter Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
-            <span className="text-xs font-semibold text-stone-500 flex items-center gap-1 shrink-0 mr-1">
+            <span className="text-xs font-semibold text-amber-300 flex items-center gap-1 shrink-0 mr-1">
               <SlidersHorizontal className="w-3.5 h-3.5" /> Lọc:
             </span>
             {[
@@ -521,8 +521,8 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                 }}
                 className={`px-3 py-1.5 text-xs font-medium rounded-xl transition-all whitespace-nowrap cursor-pointer ${
                   categoryFilter === cat.id && !showRouteMode
-                    ? 'bg-emerald-900 text-white shadow-xs font-bold'
-                    : 'bg-stone-50 text-stone-700 hover:bg-stone-200/80 border border-stone-200'
+                    ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 border border-amber-400/50 shadow-xs font-bold'
+                    : 'bg-[#060a08] text-stone-300 hover:text-white border border-emerald-900/60'
                 }`}
               >
                 {cat.label}
@@ -535,8 +535,8 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                 onClick={() => setShowRouteMode(!showRouteMode)}
                 className={`ml-2 px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
                   showRouteMode
-                    ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 border-emerald-800 shadow-xs'
-                    : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                    ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 border-amber-400/60 shadow-xs'
+                    : 'bg-amber-400/15 text-amber-300 border-amber-400/40 hover:bg-amber-400/25'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -547,15 +547,15 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
 
           {/* Tile Layer Switcher */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center p-1 bg-stone-100 rounded-xl text-xs font-medium border border-stone-200">
+            <div className="flex items-center p-1 bg-[#060a08] rounded-xl text-xs font-medium border border-emerald-900/60">
               {(Object.keys(TILE_LAYERS) as TileLayerKey[]).map((layerKey) => (
                 <button
                   key={layerKey}
                   onClick={() => setActiveTileLayer(layerKey)}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                     activeTileLayer === layerKey
-                      ? 'bg-white text-stone-900 font-bold shadow-2xs'
-                      : 'text-stone-600 hover:text-stone-900'
+                      ? 'bg-emerald-900 text-amber-300 font-bold shadow-2xs border border-amber-400/30'
+                      : 'text-stone-400 hover:text-stone-200'
                   }`}
                 >
                   {TILE_LAYERS[layerKey].name}
@@ -665,7 +665,7 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
           {/* Right Panel: Selected Destination Detail & Road Guidance (Col 4) */}
           <div className="lg:col-span-4 flex flex-col gap-5">
             {/* Active Destination Card */}
-            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-md space-y-4 overflow-hidden">
+            <div className="bg-gradient-to-b from-[#111d18] via-[#0d1713] to-[#090f0d] rounded-3xl p-6 border border-emerald-900/70 shadow-2xl space-y-4 overflow-hidden text-stone-100">
               {/* Cover Photo Header */}
               {selectedDestination.coverImage && (
                 <div className="relative aspect-[16/9] -mx-6 -mt-6 mb-2 bg-stone-900 overflow-hidden">
@@ -685,31 +685,31 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-xs text-stone-500">
-                <span className="font-semibold text-stone-700">{selectedDestination.district}</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold text-[10px] border border-emerald-200">
+              <div className="flex items-center justify-between text-xs text-stone-400">
+                <span className="font-semibold text-amber-300">{selectedDestination.district}</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold text-[10px] border border-emerald-800">
                   {selectedDestination.categoryLabel}
                 </span>
               </div>
 
               <div>
-                <h3 className="text-xl font-serif font-black text-stone-900 tracking-tight">
+                <h3 className="text-xl font-serif font-black text-stone-100 tracking-tight">
                   {selectedDestination.name}
                 </h3>
-                <p className="text-xs text-stone-600 mt-1.5 leading-relaxed line-clamp-3">
+                <p className="text-xs text-stone-300/90 mt-1.5 leading-relaxed line-clamp-3">
                   {selectedDestination.shortDescription}
                 </p>
               </div>
 
               {/* Verified Address & GPS Coordinates */}
-              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs space-y-1.5">
+              <div className="p-3.5 bg-[#060a08]/90 rounded-2xl border border-emerald-950 text-xs space-y-1.5">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-800 shrink-0 mt-0.5" />
-                  <span className="text-stone-800 font-medium leading-snug">
+                  <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="text-stone-200 font-medium leading-snug">
                     {selectedDestination.verifiedAddress}
                   </span>
                 </div>
-                <div className="text-stone-500 pl-6 font-mono text-[11px]">
+                <div className="text-stone-400 pl-6 font-mono text-[11px]">
                   Tọa độ GPS: {selectedDestination.latitude.toFixed(4)}°B, {selectedDestination.longitude.toFixed(4)}°Đ
                 </div>
               </div>
@@ -718,7 +718,7 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
               <div className="space-y-2 pt-1">
                 <button
                   onClick={() => onSelectDestination(selectedDestination)}
-                  className="w-full py-2.5 px-4 text-xs font-bold text-white bg-emerald-900 hover:bg-emerald-800 rounded-xl transition-all shadow-xs cursor-pointer"
+                  className="w-full py-2.5 px-4 text-xs font-bold text-stone-950 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 rounded-xl transition-all shadow-md cursor-pointer border border-amber-300"
                 >
                   Xem chi tiết điểm đến & cẩm nang
                 </button>
@@ -728,9 +728,9 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                     href={selectedDestination.googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2 px-3 text-xs font-semibold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 border border-stone-200"
+                    className="py-2 px-3 text-xs font-semibold text-stone-200 hover:text-amber-300 bg-stone-900/90 hover:bg-stone-850 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 border border-stone-800"
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-stone-600" />
+                    <ExternalLink className="w-3.5 h-3.5 text-stone-400" />
                     <span>Google Maps</span>
                   </a>
 
@@ -738,9 +738,9 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                     href={selectedDestination.googleEarthUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2 px-3 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5"
+                    className="py-2 px-3 text-xs font-semibold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5"
                   >
-                    <Globe className="w-3.5 h-3.5 text-emerald-700" />
+                    <Globe className="w-3.5 h-3.5 text-emerald-400" />
                     <span>3D Earth</span>
                   </a>
                 </div>
@@ -748,16 +748,16 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
             </div>
 
             {/* Quick Route Distance & Highway Estimator */}
-            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-md space-y-3.5">
+            <div className="bg-gradient-to-b from-[#111d18] via-[#0d1713] to-[#090f0d] rounded-3xl p-6 border border-emerald-900/70 shadow-2xl space-y-3.5 text-stone-100">
               <div className="flex items-center gap-2">
-                <Car className="w-4 h-4 text-emerald-800" />
-                <h4 className="text-sm font-bold text-stone-900">
+                <Car className="w-4 h-4 text-amber-400" />
+                <h4 className="text-sm font-bold text-stone-100">
                   Ước tính khoảng cách & Lộ trình
                 </h4>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1.5">
+                <label className="block text-xs font-semibold text-stone-300 mb-1.5">
                   Điểm xuất phát:
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -771,8 +771,8 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                       onClick={() => setOriginCity(origin.id as any)}
                       className={`py-1.5 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
                         originCity === origin.id
-                          ? 'bg-stone-900 text-white shadow-2xs'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 border border-amber-400/50 shadow-2xs'
+                          : 'bg-[#060a08] text-stone-300 hover:text-white border border-emerald-900/60'
                       }`}
                     >
                       {origin.label}
@@ -781,21 +781,21 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                 </div>
               </div>
 
-              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs space-y-1.5">
-                <div className="flex justify-between text-stone-600">
+              <div className="p-3.5 bg-[#060a08]/90 rounded-2xl border border-emerald-950 text-xs space-y-1.5">
+                <div className="flex justify-between text-stone-300">
                   <span>Cự ly di chuyển:</span>
-                  <span className="font-bold text-stone-900">
+                  <span className="font-bold text-amber-300">
                     ~{getOriginDistanceKm(selectedDestination)} km
                   </span>
                 </div>
-                <div className="flex justify-between text-stone-600">
+                <div className="flex justify-between text-stone-300">
                   <span>Thời gian dự kiến:</span>
-                  <span className="font-bold text-stone-900">
+                  <span className="font-bold text-emerald-400">
                     ~{Math.round((getOriginDistanceKm(selectedDestination) / 50) * 60)} phút
                   </span>
                 </div>
-                <div className="text-[11px] text-stone-500 pt-1.5 border-t border-stone-200 mt-1">
-                  <strong>Tuyến đường:</strong>{' '}
+                <div className="text-[11px] text-stone-400 pt-1.5 border-t border-emerald-950/80 mt-1">
+                  <strong className="text-stone-300">Tuyến đường:</strong>{' '}
                   {selectedDestination.id === 'doi-che-long-coc'
                     ? 'QL32 qua Sơn Tây & Thanh Sơn -> ĐT316'
                     : selectedDestination.id === 'ho-dai-lai'
@@ -810,16 +810,16 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                 href={getDirectionsUrl(selectedDestination)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                className="w-full py-2.5 text-xs font-bold text-amber-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                <Navigation className="w-3.5 h-3.5 text-blue-700" />
+                <Navigation className="w-3.5 h-3.5 text-amber-400" />
                 <span>Mở chỉ đường trên Google Maps</span>
               </a>
             </div>
 
             {/* Destination Quick Selector List */}
-            <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-md">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-2">
+            <div className="bg-gradient-to-b from-[#111d18] via-[#0d1713] to-[#090f0d] rounded-3xl p-5 border border-emerald-900/70 shadow-2xl text-stone-100">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-2">
                 Chọn điểm để định vị trên bản đồ:
               </span>
               <div className="space-y-1.5">
@@ -829,12 +829,12 @@ export const InteractiveDigitalMap: React.FC<InteractiveDigitalMapProps> = ({
                     onClick={() => handleSelectFromList(dest)}
                     className={`w-full p-2.5 rounded-xl text-left text-xs font-medium transition-all flex items-center justify-between cursor-pointer ${
                       dest.id === selectedDestId
-                        ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                        : 'hover:bg-stone-50 text-stone-700 border border-transparent'
+                        ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 font-bold border border-amber-400/50 shadow-2xs'
+                        : 'hover:bg-stone-850/60 text-stone-300 border border-transparent'
                     }`}
                   >
                     <span className="truncate pr-2">{dest.name}</span>
-                    <span className="text-[10px] text-stone-500 shrink-0 font-mono">
+                    <span className="text-[10px] text-stone-400 shrink-0 font-mono">
                       {dest.latitude.toFixed(2)}, {dest.longitude.toFixed(2)}
                     </span>
                   </button>

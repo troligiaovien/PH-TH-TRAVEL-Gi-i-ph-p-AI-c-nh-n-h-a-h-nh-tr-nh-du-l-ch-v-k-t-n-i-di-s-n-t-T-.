@@ -123,25 +123,25 @@ export const ItinerariesSection: React.FC<ItinerariesSectionProps> = ({
           initialPrompt={initialPrompt}
         />
       ) : (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 text-stone-100">
           {/* Header */}
           <div className="max-w-3xl mb-10">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">
               <span>Kế hoạch hành trình</span>
               <span aria-hidden="true">·</span>
               <span>Lịch trình mẫu tham khảo</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-400 tracking-tight">
               LỊCH TRÌNH KHÁM PHÁ GỢI Ý
             </h2>
-            <p className="mt-3 text-base text-stone-600 leading-relaxed">
+            <p className="mt-3 text-base text-stone-300 leading-relaxed">
               Các cung đường được thiết kế hợp lý theo cung đường di chuyển thực tế từ Hà Nội và trung tâm Việt Trì, tối ưu thời gian và phù hợp cho từng mục đích chuyến đi.
             </p>
           </div>
 
           {/* Filter Bar */}
-          <div className="flex flex-wrap items-center gap-2 mb-8 p-3 bg-white rounded-xl border border-stone-200 shadow-2xs">
-            <span className="text-xs font-semibold text-stone-500 mr-2">Thời lượng:</span>
+          <div className="flex flex-wrap items-center gap-2 mb-8 p-3.5 bg-[#0b1612]/95 rounded-2xl border border-emerald-900/80 shadow-2xl">
+            <span className="text-xs font-semibold text-amber-300 mr-2">Thời lượng:</span>
             {[
               { id: 'all', label: 'Tất cả' },
               { id: '1_day', label: '1 Ngày' },
@@ -152,15 +152,15 @@ export const ItinerariesSection: React.FC<ItinerariesSectionProps> = ({
                 onClick={() => setActiveDuration(dur.id)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
                   activeDuration === dur.id
-                    ? 'bg-emerald-900 text-white shadow-xs'
-                    : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
+                    ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 border border-amber-400/50 shadow-xs font-bold'
+                    : 'bg-[#060a08] text-stone-300 hover:text-white border border-emerald-900/60'
                 }`}
               >
                 {dur.label}
               </button>
             ))}
 
-            <span className="text-xs font-semibold text-stone-500 ml-4 mr-2">Chủ đề:</span>
+            <span className="text-xs font-semibold text-amber-300 ml-4 mr-2">Chủ đề:</span>
             {[
               { id: 'all', label: 'Tất cả' },
               { id: 'culture', label: 'Lịch sử & Tâm linh' },
@@ -172,8 +172,8 @@ export const ItinerariesSection: React.FC<ItinerariesSectionProps> = ({
                 onClick={() => setActiveTheme(th.id)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
                   activeTheme === th.id
-                    ? 'bg-emerald-900 text-white shadow-xs'
-                    : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
+                    ? 'bg-gradient-to-r from-emerald-900 to-emerald-950 text-amber-300 border border-amber-400/50 shadow-xs font-bold'
+                    : 'bg-[#060a08] text-stone-300 hover:text-white border border-emerald-900/60'
                 }`}
               >
                 {th.label}
@@ -189,26 +189,26 @@ export const ItinerariesSection: React.FC<ItinerariesSectionProps> = ({
               return (
                 <div
                   key={itinerary.id}
-                  className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:border-stone-300 transition-all"
+                  className="bg-gradient-to-b from-[#111d18] via-[#0d1713] to-[#090f0d] rounded-2xl border border-emerald-900/70 overflow-hidden shadow-2xl hover:border-amber-400/60 transition-all text-stone-100"
                 >
                   {/* Header Summary Bar */}
                   <div
-                    className="p-6 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 bg-stone-50/50"
+                    className="p-6 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#060a08]/85"
                     onClick={() => setExpandedItineraryId(isExpanded ? '' : itinerary.id)}
                   >
                     <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs text-stone-500 font-medium">
-                        <span className="text-emerald-900 font-bold">{itinerary.durationLabel}</span>
-                        <span aria-hidden="true">·</span>
+                      <div className="flex items-center gap-2 text-xs text-stone-400 font-medium">
+                        <span className="text-amber-400 font-bold">{itinerary.durationLabel}</span>
+                        <span aria-hidden="true" className="text-stone-600">·</span>
                         <span>{itinerary.themeLabel}</span>
-                        <span aria-hidden="true">·</span>
-                        <span className="text-stone-600">{itinerary.suitableFor}</span>
+                        <span aria-hidden="true" className="text-stone-600">·</span>
+                        <span className="text-stone-300">{itinerary.suitableFor}</span>
                       </div>
 
-                      <h3 className="text-xl font-serif font-bold text-stone-900">
+                      <h3 className="text-xl font-serif font-black text-stone-100">
                         {itinerary.title}
                       </h3>
-                      <p className="text-xs text-stone-600 line-clamp-1">{itinerary.tagline}</p>
+                      <p className="text-xs text-stone-300 line-clamp-1">{itinerary.tagline}</p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">

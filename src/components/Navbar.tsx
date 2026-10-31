@@ -55,7 +55,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-2xs">
+    <header className="sticky top-0 z-40 bg-[#08110d]/95 backdrop-blur-xl border-b border-emerald-950/80 shadow-[0_8px_30px_rgba(0,0,0,0.8)] text-stone-100">
+      {/* Top Heritage Gold-Emerald Hairline Accent */}
+      <div className="h-[2px] bg-gradient-to-r from-emerald-600 via-amber-400 to-emerald-600 w-full" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-1.5 flex items-center justify-between gap-3 sm:gap-6">
         {/* Zone 1: Brand Wordmark / Custom Logo */}
         <button
@@ -83,10 +85,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-900 text-amber-300 flex items-center justify-center font-serif text-lg font-bold shadow-xs transition-transform group-hover:scale-105">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-900 to-stone-950 border border-amber-400/50 text-amber-300 flex items-center justify-center font-serif text-lg font-bold shadow-md transition-transform group-hover:scale-105">
                 PT
               </div>
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-stone-900 whitespace-nowrap">
+              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-400 whitespace-nowrap">
                 {brandTitle}
               </span>
             </div>
@@ -101,13 +103,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleLinkClick(item.id)}
               className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer text-xs font-semibold ${
                 activeTab === item.id && currentUser
-                  ? 'bg-emerald-900 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                  ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 border border-amber-400/40 shadow-xs'
+                  : 'text-stone-300 hover:text-amber-300 hover:bg-stone-800/60'
               }`}
             >
               {item.label}
               {!currentUser && item.id !== 'destinations' && (
-                <Lock className="w-3 h-3 inline-block ml-1 text-stone-400" />
+                <Lock className="w-3 h-3 inline-block ml-1 text-stone-500" />
               )}
             </button>
           ))}
@@ -118,12 +120,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               href="https://dulichphutho.com.vn/vi/explore360"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 text-xs font-bold text-amber-900 bg-gradient-to-r from-amber-400/25 via-amber-300/30 to-amber-400/25 hover:from-amber-400/40 hover:to-amber-300/45 border border-amber-400/60 flex items-center gap-1.5 shadow-2xs group"
+              className="interactive-btn px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap shrink-0 text-xs font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 via-amber-400/30 to-amber-500/20 hover:from-amber-400/40 hover:to-amber-300/50 border border-amber-400/70 hover:border-amber-300 flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.25)] group"
               title="Khám phá di sản & danh thắng Đất Tổ bằng công nghệ thực tế ảo 360 độ"
             >
-              <Compass className="w-3.5 h-3.5 text-amber-700 group-hover:rotate-90 transition-transform duration-500" />
+              <Compass className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-90 transition-transform duration-500" />
               <span>NGẮM PHÚ THỌ QUA 360°</span>
-              <ExternalLink className="w-3 h-3 text-amber-700/80 group-hover:text-amber-900" />
+              <span className="text-[9px] bg-amber-400 text-stone-950 font-black px-1.5 py-0.2 rounded-full">VR</span>
+              <ExternalLink className="w-3 h-3 text-amber-300 group-hover:text-amber-200" />
             </a>
           ) : (
             <a
@@ -134,12 +137,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.preventDefault();
                 onOpenAuth();
               }}
-              className="px-3 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 text-xs font-bold text-amber-900 bg-gradient-to-r from-amber-400/25 via-amber-300/30 to-amber-400/25 hover:from-amber-400/40 hover:to-amber-300/45 border border-amber-400/60 flex items-center gap-1.5 shadow-2xs group cursor-pointer"
+              className="interactive-btn px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap shrink-0 text-xs font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 via-amber-400/30 to-amber-500/20 hover:from-amber-400/40 hover:to-amber-300/50 border border-amber-400/70 flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.25)] group cursor-pointer"
               title="Khám phá toàn cảnh 360 độ du lịch Phú Thọ (Cần đăng nhập)"
             >
-              <Compass className="w-3.5 h-3.5 text-amber-700 group-hover:rotate-90 transition-transform duration-500" />
+              <Compass className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-90 transition-transform duration-500" />
               <span>NGẮM PHÚ THỌ QUA 360°</span>
-              <Lock className="w-3 h-3 text-amber-800" />
+              <span className="text-[9px] bg-stone-900 text-amber-300 font-bold px-1.5 py-0.2 rounded-full flex items-center gap-0.5 border border-amber-400/30">
+                <Lock className="w-2.5 h-2.5" /> Khóa
+              </span>
             </a>
           )}
         </nav>
@@ -154,18 +159,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               }
               onOpenFavorites();
             }}
-            className="relative p-2 text-stone-700 hover:text-emerald-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+            className="relative p-2 text-stone-300 hover:text-amber-300 hover:bg-stone-800/60 rounded-lg transition-colors cursor-pointer"
             title={currentUser ? "Xem danh sách đã lưu" : "Đăng nhập để xem danh sách yêu thích"}
             aria-label={`Điểm đến yêu thích (${favoritesCount})`}
           >
             <Bookmark className="w-5 h-5" />
             {currentUser && favoritesCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center leading-none">
+              <span className="absolute -top-1 -right-1 bg-amber-500 text-stone-950 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-4 text-center leading-none">
                 {favoritesCount}
               </span>
             )}
             {!currentUser && (
-              <span className="absolute -top-1 -right-1 bg-stone-500 text-white text-[9px] font-bold px-1 rounded-full">
+              <span className="absolute -top-1 -right-1 bg-stone-800 border border-amber-400/40 text-amber-300 text-[9px] font-bold px-1 rounded-full">
                 🔒
               </span>
             )}
@@ -189,8 +194,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenAuth}
               className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
                 isAdmin
-                  ? 'bg-amber-50/80 border-amber-300 text-stone-900 hover:bg-amber-100/70'
-                  : 'bg-emerald-50/70 border-emerald-300 text-stone-800 hover:bg-emerald-100/60'
+                  ? 'bg-amber-400/20 border-amber-400/60 text-amber-200 hover:bg-amber-400/30'
+                  : 'bg-emerald-950/70 border-emerald-700/60 text-emerald-200 hover:bg-emerald-900/60'
               }`}
               title={`Đang đăng nhập: ${currentUser.email}${isAdmin ? ' (Quản trị viên)' : ' (Đồng bộ đám mây)'}`}
             >
@@ -202,19 +207,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className={`w-5 h-5 rounded-full ${isAdmin ? 'bg-amber-600 text-stone-950' : 'bg-emerald-900 text-amber-300'} flex items-center justify-center text-[10px] font-bold shrink-0`}>
+                <div className={`w-5 h-5 rounded-full ${isAdmin ? 'bg-amber-500 text-stone-950' : 'bg-emerald-800 text-amber-300'} flex items-center justify-center text-[10px] font-bold shrink-0`}>
                   {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
                 </div>
               )}
               <span className="hidden sm:inline max-w-[85px] truncate font-semibold">
                 {currentUser.displayName?.split(' ').pop() || 'Tài khoản'}
               </span>
-              <span className={`w-2 h-2 rounded-full ${isAdmin ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse shrink-0`} title={isAdmin ? 'Quyền Admin Toàn Hệ Thống' : 'Đã kết nối Firestore'}></span>
+              <span className={`w-2 h-2 rounded-full ${isAdmin ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse shrink-0`} title={isAdmin ? 'Quyền Admin Toàn Hệ Thống' : 'Đã kết nối Firestore'}></span>
             </button>
           ) : (
             <button
               onClick={onOpenAuth}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-800 hover:text-stone-950 text-xs font-semibold transition-all cursor-pointer shadow-xs hover:border-emerald-300"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl border border-emerald-900/80 bg-stone-900/90 hover:bg-stone-800 text-stone-200 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-xs hover:border-amber-400/50"
               title="Đăng nhập tài khoản Google / Email"
             >
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -241,16 +246,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => handleLinkClick('map')}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shadow-xs cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-300 bg-gradient-to-r from-emerald-900 to-emerald-950 border border-emerald-700/80 hover:brightness-110 rounded-lg transition-all whitespace-nowrap shadow-xs cursor-pointer"
           >
-            <MapPin className="w-3.5 h-3.5" />
+            <MapPin className="w-3.5 h-3.5 text-amber-400" />
             <span>Bản đồ</span>
-            {!currentUser && <Lock className="w-3 h-3 text-emerald-300" />}
+            {!currentUser && <Lock className="w-3 h-3 text-stone-400" />}
           </button>
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+            className="md:hidden p-2 text-stone-300 hover:text-white hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
             aria-label="Mở menu điều hướng"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -260,7 +265,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-stone-200 bg-stone-50 px-4 pt-3 pb-5 shadow-lg animate-in slide-in-from-top-2">
+        <div className="md:hidden border-t border-emerald-950 bg-[#09120e] px-4 pt-3 pb-5 shadow-2xl animate-in slide-in-from-top-2 text-stone-100">
           <div className="flex flex-col gap-1.5">
             {navItems.map((item) => {
               const isLocked = !currentUser && item.id !== 'destinations';
@@ -270,12 +275,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => handleLinkClick(item.id)}
                   className={`flex items-center justify-between text-left px-3.5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                     activeTab === item.id
-                      ? 'bg-emerald-900 text-white font-bold'
-                      : 'text-stone-800 hover:bg-stone-200/60'
+                      ? 'bg-emerald-900 text-amber-300 font-bold border border-amber-400/40'
+                      : 'text-stone-300 hover:bg-stone-800/60'
                   }`}
                 >
                   <span>{item.label}</span>
-                  {isLocked && <Lock className="w-3.5 h-3.5 text-stone-400" />}
+                  {isLocked && <Lock className="w-3.5 h-3.5 text-stone-500" />}
                 </button>
               );
             })}
@@ -292,13 +297,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setMobileMenuOpen(false);
                 }
               }}
-              className="flex items-center justify-between px-3.5 py-2.5 text-sm font-bold text-amber-950 bg-gradient-to-r from-amber-200/70 via-amber-100 to-amber-200/60 rounded-lg border border-amber-300 shadow-2xs"
+              className="flex items-center justify-between px-3.5 py-2.5 text-sm font-bold text-amber-300 bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 rounded-lg border border-amber-400/70 shadow-2xs"
             >
               <span className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-amber-800" />
+                <Compass className="w-4 h-4 text-amber-400" />
                 <span>NGẮM PHÚ THỌ QUA 360°</span>
               </span>
-              <span className="text-[10px] bg-amber-300 text-amber-950 font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-400">
+              <span className="text-[10px] bg-amber-400 text-stone-950 font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
                 {currentUser ? (
                   <>
                     <span>360° VR</span>
@@ -313,7 +318,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </a>
 
-            <div className="pt-2 border-t border-stone-200 mt-1 space-y-2">
+            <div className="pt-2 border-t border-emerald-950 mt-1 space-y-2">
               {isAdmin && (
                 <button
                   onClick={() => {
@@ -337,18 +342,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onOpenAuth();
                   setMobileMenuOpen(false);
                 }}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium text-stone-800 bg-white rounded-lg border border-stone-200"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium text-stone-200 bg-stone-900/90 rounded-lg border border-stone-800"
               >
                 <span className="flex items-center gap-2">
-                  <Cloud className="w-4 h-4 text-emerald-700" />
+                  <Cloud className="w-4 h-4 text-emerald-400" />
                   {currentUser ? `Tài khoản: ${currentUser.displayName || currentUser.email}` : 'Đăng nhập Google'}
                 </span>
                 {currentUser ? (
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-800">
                     Đã đồng bộ
                   </span>
                 ) : (
-                  <span className="text-[11px] text-emerald-700 font-semibold">Kết nối ngay</span>
+                  <span className="text-[11px] text-amber-400 font-semibold">Kết nối ngay</span>
                 )}
               </button>
 
@@ -357,13 +362,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onOpenFavorites();
                   setMobileMenuOpen(false);
                 }}
-                className="w-full flex items-center justify-between px-3.5 py-2 text-sm font-medium text-stone-800 bg-white rounded-lg border border-stone-200"
+                className="w-full flex items-center justify-between px-3.5 py-2 text-sm font-medium text-stone-200 bg-stone-900/90 rounded-lg border border-stone-800"
               >
                 <span className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4 text-amber-700" />
+                  <Bookmark className="w-4 h-4 text-amber-400" />
                   Điểm đến đã lưu
                 </span>
-                <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/40">
                   {favoritesCount}
                 </span>
               </button>

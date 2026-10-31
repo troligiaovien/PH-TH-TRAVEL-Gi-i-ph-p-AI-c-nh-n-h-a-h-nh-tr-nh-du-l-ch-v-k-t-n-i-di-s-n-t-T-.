@@ -141,12 +141,12 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
   }, [featuredArticle]);
 
   return (
-    <div className="bg-stone-50 min-h-screen py-6 sm:py-10">
+    <div className="bg-gradient-to-b from-[#08100d] via-[#0b1612] to-[#070c0a] text-stone-100 min-h-screen py-6 sm:py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* ========================================================
             1. HERO SECTION — MAGAZINE COVER & SEARCH HUB
         ======================================================== */}
-        <section className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-stone-950 via-emerald-950 to-stone-900 text-white p-6 sm:p-12 border border-stone-800 shadow-xl">
+        <section className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-stone-950 via-emerald-950 to-stone-900 text-white p-6 sm:p-12 border border-emerald-900/60 shadow-2xl">
           {/* Subtle Ambient Heritage Pattern */}
           <div className="absolute inset-0 opacity-15 pointer-events-none">
             <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -168,7 +168,7 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight text-white leading-tight">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-amber-400 leading-tight">
               CẨM NANG DU LỊCH PHÚ THỌ
             </h1>
 
@@ -179,19 +179,19 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
 
             {/* Interactive Search Bar */}
             <div className="pt-2 max-w-2xl mx-auto">
-              <div className="relative flex items-center bg-white/95 backdrop-blur-md rounded-2xl p-1.5 shadow-lg border border-white/20 focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
-                <Search className="w-5 h-5 text-stone-400 ml-3.5 shrink-0" />
+              <div className="relative flex items-center bg-[#060a08]/90 backdrop-blur-md rounded-2xl p-1.5 shadow-xl border border-emerald-900/80 focus-within:ring-2 focus-within:ring-amber-400/30 transition-all">
+                <Search className="w-5 h-5 text-amber-400 ml-3.5 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Bạn muốn tìm hiểu điều gì về Phú Thọ? (Đền Hùng, ẩm thực, lịch trình...)"
-                  className="w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-stone-800 placeholder-stone-400 focus:outline-hidden"
+                  className="w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-stone-100 placeholder-stone-500 focus:outline-hidden"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg mr-1 cursor-pointer"
+                    className="p-1.5 text-stone-400 hover:text-white rounded-lg mr-1 cursor-pointer"
                     aria-label="Xóa tìm kiếm"
                   >
                     <X className="w-4 h-4" />
@@ -199,7 +199,7 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
                 )}
                 <button
                   type="button"
-                  className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shrink-0 shadow-xs cursor-pointer"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-stone-950 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 shadow-md cursor-pointer border border-amber-300"
                 >
                   Tìm kiếm
                 </button>
@@ -217,8 +217,8 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
                     }}
                     className={`px-2.5 py-0.5 rounded-full border transition-all cursor-pointer ${
                       searchQuery.toLowerCase() === chip.query.toLowerCase()
-                        ? 'bg-amber-400 text-stone-900 font-bold border-amber-300'
-                        : 'bg-white/10 hover:bg-white/20 text-stone-200 border-white/10'
+                        ? 'bg-amber-400 text-stone-950 font-bold border-amber-300'
+                        : 'bg-[#060a08] hover:bg-emerald-950 text-stone-300 border-emerald-900/60'
                     }`}
                   >
                     {chip.label}
@@ -228,23 +228,23 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
             </div>
 
             {/* Real Verified Statistical Badges */}
-            <div className="pt-4 flex flex-wrap items-center justify-center gap-6 sm:gap-10 border-t border-white/10 text-xs text-stone-300">
+            <div className="pt-4 flex flex-wrap items-center justify-center gap-6 sm:gap-10 border-t border-emerald-950/80 text-xs text-stone-300">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-amber-300" />
                 <span>
-                  <strong className="text-white text-sm sm:text-base font-bold">{MAGAZINE_ARTICLES_DATA.length}</strong> bài viết chuyên sâu
+                  <strong className="text-amber-300 text-sm sm:text-base font-bold">{MAGAZINE_ARTICLES_DATA.length}</strong> bài viết chuyên sâu
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-emerald-400" />
                 <span>
-                  <strong className="text-white text-sm sm:text-base font-bold">{ARTICLE_CATEGORIES_CONFIG.length - 1}</strong> chuyên đề du lịch
+                  <strong className="text-emerald-400 text-sm sm:text-base font-bold">{ARTICLE_CATEGORIES_CONFIG.length - 1}</strong> chuyên đề du lịch
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Rocket className="w-4 h-4 text-sky-400" />
+                <Rocket className="w-4 h-4 text-amber-400" />
                 <span>
-                  <strong className="text-white text-sm sm:text-base font-bold">{TOURISM_PROJECTS_DATA.length}</strong> đề tài & sáng kiến KHKT
+                  <strong className="text-amber-300 text-sm sm:text-base font-bold">{TOURISM_PROJECTS_DATA.length}</strong> đề tài & sáng kiến KHKT
                 </span>
               </div>
             </div>
@@ -254,17 +254,17 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
         {/* ========================================================
             2. TOP NAVIGATION BAR (ARTICLES vs PROJECTS vs BOOKMARKS)
         ======================================================== */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
-          <div className="flex items-center gap-1.5 bg-stone-200/70 p-1.5 rounded-2xl self-start sm:self-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-emerald-950/80">
+          <div className="flex items-center gap-1.5 bg-[#060a08]/90 p-1.5 rounded-2xl border border-emerald-900/70 self-start sm:self-auto">
             <button
               onClick={() => setActiveMainView('articles')}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 activeMainView === 'articles'
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 border border-amber-400/50 shadow-md'
+                  : 'text-stone-400 hover:text-white'
               }`}
             >
-              <BookOpen className="w-4 h-4 text-emerald-800" />
+              <BookOpen className="w-4 h-4 text-amber-400" />
               <span>Tạp chí & Cẩm nang ({MAGAZINE_ARTICLES_DATA.length})</span>
             </button>
 
@@ -272,11 +272,11 @@ export const GuideAndProjectSection: React.FC<GuideAndProjectSectionProps> = ({
               onClick={() => setActiveMainView('projects')}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 activeMainView === 'projects'
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-amber-300 border border-amber-400/50 shadow-md'
+                  : 'text-stone-400 hover:text-white'
               }`}
             >
-              <Rocket className="w-4 h-4 text-amber-600" />
+              <Rocket className="w-4 h-4 text-amber-400" />
               <span>Dự án & Sáng kiến KHKT ({TOURISM_PROJECTS_DATA.length})</span>
             </button>
 

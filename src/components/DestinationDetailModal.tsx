@@ -228,21 +228,24 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fade-in-up"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-stone-200 overflow-hidden my-4 sm:my-6 flex flex-col max-h-[92vh]"
+        className="relative bg-gradient-to-b from-[#101b17] via-[#0d1613] to-[#080f0c] w-full max-w-4xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.9)] border border-emerald-800/80 overflow-hidden my-4 sm:my-6 flex flex-col max-h-[92vh] text-stone-100"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Top Gold-Emerald Hairline Accent */}
+        <div className="h-[2.5px] bg-gradient-to-r from-emerald-600 via-amber-400 to-emerald-600 w-full shrink-0" />
+
         {/* Floating Top Header Ribbon & Quick Actions */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
           {isAdmin && onEditDestination && (
             <button
               onClick={() => onEditDestination(destination)}
-              className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-bold text-xs rounded-full shadow-md flex items-center gap-1.5 cursor-pointer border border-amber-300 transition-colors"
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-bold text-xs rounded-full shadow-lg flex items-center gap-1.5 cursor-pointer border border-amber-300 transition-all hover:scale-105"
               title="Chỉnh sửa di tích này (Admin)"
             >
               <Edit3 className="w-3.5 h-3.5 text-stone-950" />
@@ -252,10 +255,10 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
 
           <button
             onClick={() => onToggleFavorite(destination.id)}
-            className={`p-2.5 rounded-full shadow-md transition-colors cursor-pointer ${
+            className={`p-2.5 rounded-full shadow-lg transition-all cursor-pointer ${
               isFavorite
-                ? 'bg-amber-500 text-white'
-                : 'bg-white/90 text-stone-700 hover:bg-white hover:text-stone-900'
+                ? 'bg-amber-400 text-stone-950 ring-2 ring-amber-300 scale-105'
+                : 'bg-stone-950/70 backdrop-blur-md text-stone-200 hover:bg-amber-400 hover:text-stone-950 border border-white/15 hover:scale-105'
             }`}
             title={isFavorite ? 'Bỏ lưu' : 'Lưu vào mục yêu thích'}
             aria-label="Lưu yêu thích"
@@ -265,16 +268,16 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
 
           <button
             onClick={handleShare}
-            className="p-2.5 bg-white/90 text-stone-700 hover:bg-white hover:text-stone-900 rounded-full shadow-md transition-colors cursor-pointer"
+            className="p-2.5 bg-stone-950/70 backdrop-blur-md text-stone-200 hover:bg-white hover:text-stone-900 rounded-full shadow-lg transition-all cursor-pointer border border-white/15 hover:scale-105"
             title="Chia sẻ liên kết"
             aria-label="Chia sẻ liên kết"
           >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
           </button>
 
           <button
             onClick={onClose}
-            className="p-2.5 bg-white/90 text-stone-700 hover:bg-white hover:text-stone-900 rounded-full shadow-md transition-colors cursor-pointer"
+            className="p-2.5 bg-stone-950/70 backdrop-blur-md text-stone-200 hover:bg-rose-600 hover:text-white rounded-full shadow-lg transition-all cursor-pointer border border-white/15 hover:scale-105"
             title="Đóng cửa sổ"
             aria-label="Đóng"
           >
@@ -302,18 +305,18 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
           )}
 
           {/* Vignette gradient for flawless contrast */}
-          <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-stone-950/60 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080f0c] via-stone-950/40 to-stone-950/60 pointer-events-none" />
 
           <div className="relative z-10 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300 drop-shadow-md mb-1.5">
-              <span className="px-2 py-0.5 rounded bg-stone-950/70 border border-amber-400/30 font-bold">{destination.kicker}</span>
+              <span className="px-2 py-0.5 rounded bg-stone-950/80 border border-amber-400/40 font-bold">{destination.kicker}</span>
               <span aria-hidden="true" className="text-stone-400">·</span>
               <span className="text-stone-200">{destination.district}</span>
 
               {combinedGallery.length > 0 && (
                 <button
                   onClick={() => setActiveTab('gallery')}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-900/80 hover:bg-stone-900 text-amber-300 text-[11px] font-bold border border-amber-300/40 transition-colors ml-1 cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-900/90 hover:bg-stone-850 text-amber-300 text-[11px] font-bold border border-amber-300/40 transition-colors ml-1 cursor-pointer shadow-xs"
                 >
                   <Camera className="w-3.5 h-3.5" />
                   <span>{combinedGallery.length} ảnh cảnh đẹp</span>
@@ -333,7 +336,7 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
         </div>
 
         {/* Streamlined Tab Switcher (Includes Gallery tab) */}
-        <div className="flex border-b border-stone-200/90 px-6 bg-stone-100/70 overflow-x-auto gap-2 shrink-0">
+        <div className="flex border-b border-emerald-950/90 px-6 pt-2 bg-[#060a08]/90 overflow-x-auto gap-2 shrink-0">
           {[
             { id: 'overview', label: 'Thông tin chi tiết' },
             {
@@ -349,13 +352,13 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 px-3 text-xs font-bold whitespace-nowrap border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`py-2.5 px-4 text-xs font-bold whitespace-nowrap border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
                   activeTab === tab.id
-                    ? 'border-emerald-900 text-emerald-950 bg-white/70 rounded-t-lg'
-                    : 'border-transparent text-stone-600 hover:text-stone-950 hover:bg-stone-200/40'
+                    ? 'border-amber-400 text-amber-300 bg-[#0e1814] shadow-xs rounded-t-xl'
+                    : 'border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-800/40 rounded-t-xl'
                 }`}
               >
-                {Icon && <Icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-emerald-800' : 'text-stone-500'}`} />}
+                {Icon && <Icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-amber-400' : 'text-stone-500'}`} />}
                 <span>{tab.label}</span>
               </button>
             );
@@ -363,17 +366,17 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6 text-sm text-stone-700 leading-relaxed">
+        <div className="p-6 overflow-y-auto flex-1 space-y-6 text-sm text-stone-200 leading-relaxed">
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* 1. Giới thiệu chung */}
               <div>
-                <h4 className="text-xs uppercase font-bold tracking-wider text-emerald-900 mb-2 flex items-center gap-1.5">
-                  <Compass className="w-4 h-4 text-emerald-700" />
-                  Giới thiệu chung
+                <h4 className="text-xs uppercase font-bold tracking-wider text-amber-400 mb-2.5 flex items-center gap-1.5">
+                  <Compass className="w-4 h-4 text-amber-400" />
+                  Giới thiệu chung & Tổng quan
                 </h4>
-                <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 text-stone-800 leading-relaxed text-sm">
+                <div className="p-5 bg-[#060a08]/90 rounded-2xl border border-emerald-950 text-stone-200 leading-relaxed text-sm shadow-xs">
                   {destination.fullDescription}
                 </div>
               </div>
@@ -381,11 +384,11 @@ export const DestinationDetailModal: React.FC<DestinationDetailModalProps> = ({
               {/* Lịch sử và giá trị văn hóa */}
               {destination.historicalValue && (
                 <div>
-                  <h4 className="text-xs uppercase font-bold tracking-wider text-amber-900 mb-2 flex items-center gap-1.5">
-                    <Bookmark className="w-4 h-4 text-amber-700" />
+                  <h4 className="text-xs uppercase font-bold tracking-wider text-amber-300 mb-2.5 flex items-center gap-1.5">
+                    <Bookmark className="w-4 h-4 text-amber-400" />
                     Lịch sử và giá trị văn hóa
                   </h4>
-                  <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-200/70 text-stone-800 leading-relaxed text-sm">
+                  <div className="p-5 bg-gradient-to-br from-[#191508] via-[#141005] to-[#0e0c03] rounded-2xl border border-amber-500/40 text-amber-100 leading-relaxed text-sm shadow-xs relative overflow-hidden">
                     {destination.historicalValue}
                   </div>
                 </div>
